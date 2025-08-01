@@ -8,6 +8,7 @@ const clearOtpRoute = require('./src/routes/clear.otp.route');
 const fileRoutes = require('./src/routes/file.routes');
 const questionRoutes = require('./src/routes/question.routes');
 const addCommentsRoutes = require('./src/routes/add.comments.route');
+const replyRoute = require('./src/routes/reply.route');
 
 
 app.use(express.json());
@@ -18,6 +19,7 @@ app.use("/api",clearOtpRoute);
 app.use("/api",fileRoutes);
 app.use("/api", questionRoutes);
 app.use("/api",addCommentsRoutes);
+app.use('/api/reply', replyRoute);
 
 // ✅ Error handler for Multer file size limits
 app.use((err, req, res, next) => {
