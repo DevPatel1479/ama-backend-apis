@@ -27,7 +27,7 @@ exports.uploadFile = async (req, res) => {
     });
 
     stream.on('error', (err) => {
-      console.error(err);
+      console.error('🔥 Firebase Storage upload error:', err);
       return res.status(500).json({ success: false, message: 'Upload error.' });
     });
 
