@@ -3,10 +3,10 @@ const {db, admin} = require('../config/firebase');
 
 exports.sendTopicNotification = async (req, res) => {
     try {
-        const { user_id, topic } = req.body;
+        const { user_id, topic, n_title, n_body } = req.body;
 
-        if (!user_id || !topic) {
-            return res.status(400).json({ success: false, message: 'user_id and topic are required' });
+        if (!user_id || !topic  || !n_title  || !n_body) {
+            return res.status(400).json({ success: false, message: 'user_id, topic, n_title and n_body are required' });
         }
 
         if (topic === "admin") {
@@ -22,8 +22,8 @@ exports.sendTopicNotification = async (req, res) => {
         // Notification payload
         const message = {
             notification: {
-                title: 'New Update',
-                body: `Notification for topic: ${topic}`
+                title: n_title,
+                body: n_body
             },
             topic: topic
         };
