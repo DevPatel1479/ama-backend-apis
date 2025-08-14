@@ -1,6 +1,6 @@
 const {db} = require('../config/firebase');
 
-
+const collectionName = "login_users"; 
 exports.storeFcmToken = async (req, res) => {
   try {
     const { user_id, fcm_token } = req.body;
