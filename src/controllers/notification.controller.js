@@ -3,14 +3,25 @@ const {db, admin} = require('../config/firebase');
 
 exports.sendTopicNotification = async (req, res) => {
     try {
-        const { user_id, topic, n_title, n_body } = req.body;
+        const { user_id, topic, n_title, n_body, role_count } = req.body;
 
-        if (!user_id || !topic  || !n_title  || !n_body) {
-            return res.status(400).json({ success: false, message: 'user_id, topic, n_title and n_body are required' });
+        if (!user_id || !topic  || !n_title  || !n_body || !role_count) {
+            return res.status(400).json({ success: false, message: 'user_id, topic, n_title, n_body and role_count are required' });
         }
 
-        if (topic === "admin") {
-            return res.status(403).json({ success: false, message: 'Sending to admin topic is not allowed' });
+        const topics = Array.isArray(topic) ? topic : [topic];
+
+
+        // if (topic === "admin") {
+        //     return res.status(403).json({ success: false, message: 'Sending to admin topic is not allowed' });
+        // }
+         // Prevent sending to "admin"
+
+        if (topics.includes("admin")) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Sending to admin topic is not allowed' 
+            });
         }
 
         // Check if the user exists
@@ -28,8 +39,14 @@ exports.sendTopicNotification = async (req, res) => {
             topic: topic
         };
 
-        // Send to topic
-        await admin.messaging().send(message);
+        // // Send to topic
+        // await admin.messaging().send(message);
+          const sendPromises = topics.map(async (t) => {
+            const msg = { ...messagePayload, topic: t };
+            return admin.messaging().send(msg);
+        });
+
+        await Promise.all(sendPromises);
 
         return res.status(200).json({ success: true, message: `Notification sent to topic: ${topic}` });
 
