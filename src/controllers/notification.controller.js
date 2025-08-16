@@ -31,12 +31,19 @@ exports.sendTopicNotification = async (req, res) => {
         }
 
         // Notification payload
-        const message = {
+        // const message = {
+        //     notification: {
+        //         title: n_title,
+        //         body: n_body
+        //     },
+        //     topic: topic
+        // };
+        
+        const messagePayload = {
             notification: {
                 title: n_title,
                 body: n_body
-            },
-            topic: topic
+            }
         };
 
         // // Send to topic
