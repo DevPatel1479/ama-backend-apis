@@ -1,4 +1,4 @@
-const db = require("../config/firebase");
+const { db } = require("../config/firebase");
 
 exports.registerUser = async (req, res) => {
   const { name, email, phone, state, query, source, role } = req.body;
@@ -8,7 +8,9 @@ exports.registerUser = async (req, res) => {
   try {
     const doc = await loginUsersRef.get();
     if (doc.exists) {
-      return res.status(409).json({ message: "User already exists. Please sign in." });
+      return res
+        .status(409)
+        .json({ message: "User already exists. Please sign in." });
     }
 
     const timestamp = Math.floor(Date.now() / 1000);
@@ -21,7 +23,7 @@ exports.registerUser = async (req, res) => {
       role,
       created_at: timestamp,
       updated_at: timestamp,
-      status: "active"
+      status: "active",
     });
 
     await db.collection("leads").add({
@@ -31,7 +33,7 @@ exports.registerUser = async (req, res) => {
       state,
       query: query || null,
       source,
-      
+
       created_at: timestamp,
     });
 
