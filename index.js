@@ -1,5 +1,8 @@
 const express = require("express");
 const app = express();
+app.use(express.json()); // parse application/json
+app.use(express.urlencoded({ extended: true }));
+
 require("dotenv").config({ path: ".env.local" });
 const registerRoutes = require("./src/routes/register.route");
 const loginRoutes = require("./src/routes/login.route");
