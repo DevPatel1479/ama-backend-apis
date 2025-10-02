@@ -5,13 +5,13 @@ const multer = require("multer");
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
-    if (!allowedTypes.includes(file.mimetype)) {
-      return cb(new Error("Only JPEG, JPG, PNG files are allowed"), false);
-    }
-    cb(null, true);
-  },
+  //   fileFilter: (req, file, cb) => {
+  //     const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+  //     if (!allowedTypes.includes(file.mimetype)) {
+  //       return cb(new Error("Only JPEG, JPG, PNG files are allowed"), false);
+  //     }
+  //     cb(null, true);
+  //   },
 }).single("profile_photo"); // field name in request
 
 // Helper to check required fields
