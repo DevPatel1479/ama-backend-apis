@@ -25,6 +25,7 @@ exports.loginUser = async (req, res) => {
     const role = data.role || "unknown";
     const name = data.name || "N/A";
     const email = data.email || "N/A";
+
     const finalData = {
       role: role,
       name: name,
