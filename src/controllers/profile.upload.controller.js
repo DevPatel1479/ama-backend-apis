@@ -149,4 +149,50 @@ const updateProfilePhoto = (req, res) => {
   });
 };
 
-module.exports = { uploadProfilePhoto, updateProfilePhoto };
+const getProfilePhoto = async (req, res) => {
+  try {
+    const { phone, role } = req.body;
+
+    // Validate request
+    if (!phone || !role) {
+      return res.status(400).json({
+        success: false,
+        message: "Both phone and role are required",
+      });
+    }
+
+    const docName = `${role}_${phone}`;
+    const docRef = db.collection("login_users").doc(docName);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const data = doc.data();
+    const profileImg = data?.profile_img;
+
+    if (!profileImg) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile photo not uploaded yet",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      profile_img: profileImg,
+    });
+  } catch (error) {
+    console.error("Error fetching profile photo:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+module.exports = { uploadProfilePhoto, updateProfilePhoto, getProfilePhoto };
