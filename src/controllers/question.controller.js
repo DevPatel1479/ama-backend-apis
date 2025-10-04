@@ -1,169 +1,158 @@
-const { db,admin } = require('../config/firebase');
-const {updateCommentVote} = require('../services/update.comment.service');
+const { db, admin } = require("../config/firebase");
 
-exports.postQuestion = async (req, res) => {
+// POST: Create a new question
+const createQuestion = async (req, res) => {
   try {
-    const { phone, role, name, question, file_url } = req.body;
-    
+    const { userId, userName, userRole, phone, profileImgUrl, content } =
+      req.body;
 
-    if (!phone || !role || !name || !question) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields.',
-      });
+    if (!userId || !content) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Get current number of questions
-    const questionsSnapshot = await db.collection('questions').get();
-    const count = questionsSnapshot.size + 1;
-    const docId = `ques_${count}`;
-    
-    const newQuestion = {
+    const newQuestionRef = db.collection("questions").doc();
+
+    const unixTimestamp = Date.now(); // ✅ Universal Unix timestamp in ms (UTC)
+
+    const questionData = {
+      userId,
+      userName,
+      userRole,
       phone,
-      role,
-      name,
-      question,
-      upvotes: 0,
-      downvotes: 0,
-      posted_at: Math.floor(Date.now() / 1000), // UNIX timestamp
-      comments: [],
-      file_url:file_url ?? ""
+      profileImgUrl: profileImgUrl || null,
+      content,
+      timestamp: unixTimestamp, // ✅ stored as Unix timestamp
+      answer: null,
     };
 
-    await db.collection('questions').doc(docId).set(newQuestion);
+    await newQuestionRef.set(questionData);
 
-    return res.status(201).json({
-      success: true,
-      message: 'Question posted successfully.',
-      id: docId,
-      data: newQuestion,
-    });
+    res.status(201).json({ id: newQuestionRef.id, ...questionData });
   } catch (error) {
-    console.error('Error posting question:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error. Try again.',
-      error: error.message,
-    });
+    console.error("Error creating question:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-
-
-// Add Vote (Upvote or Downvote)
-exports.vote = async (req, res) => {
+// GET: Fetch all questions with pagination
+const getQuestions = async (req, res) => {
   try {
-    const { type, target, targetId, phone, name, role, commentId } = req.body;
+    const { limit = 10, lastVisible } = req.query;
 
-    if (!type || !target || !targetId || !phone) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    let query = db
+      .collection("questions")
+      .orderBy("timestamp", "desc")
+      .limit(Number(limit));
+
+    if (lastVisible) {
+      const lastDoc = await db.collection("questions").doc(lastVisible).get();
+      if (lastDoc.exists) {
+        query = query.startAfter(lastDoc.data().timestamp);
+      }
     }
-
-    const isUpvote = type === 'upvote';
-    const voteField = isUpvote ? 'upvotes' : 'downvotes';
-
-    const questionRef = db.collection('questions').doc(targetId);
-
-    if (target === 'question') {
-      const doc = await questionRef.get();
-      const currentVotes = doc.data()?.[voteField] || 0;
-      await questionRef.update({
-        [voteField]: currentVotes + 1,
-      });
-    } else if (target === 'comment' && commentId) {
-      await updateCommentVote(targetId, commentId, voteField, 1);
-    } else {
-      return res.status(400).json({ success: false, message: 'Invalid target' });
-    }
-
-    return res.status(200).json({ success: true, message: `${type} added` });
-
-  } catch (error) {
-    console.error('Vote Error:', error);
-    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
-  }
-};
-
-// Remove Vote
-exports.removeVote = async (req, res) => {
-  try {
-    const { type, target, targetId, phone, commentId } = req.body;
-
-    if (!type || !target || !targetId || !phone) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
-    }
-
-    const isUpvote = type === 'upvote';
-    const voteField = isUpvote ? 'upvotes' : 'downvotes';
-
-    const questionRef = db.collection('questions').doc(targetId);
-
-    if (target === 'question') {
-      const doc = await questionRef.get();
-      const currentVotes = doc.data()?.[voteField] || 0;
-      await questionRef.update({
-        [voteField]: Math.max(currentVotes - 1, 0),
-      });
-    } else if (target === 'comment' && commentId) {
-      await updateCommentVote(targetId, commentId, voteField, -1);
-    } else {
-      return res.status(400).json({ success: false, message: 'Invalid target' });
-    }
-
-    return res.status(200).json({ success: true, message: `${type} removed` });
-
-  } catch (error) {
-    console.error('Remove Vote Error:', error);
-    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
-  }
-};
-
-
-exports.getAllQuestions = async (req, res) => {
-  try {
-    const { phone, fetch_my, page = 1, limit = 10 } = req.body;
-
-    if (!phone) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone number is required."
-      });
-    }
-
-    const questionsRef = db.collection('questions');
-    let query = questionsRef.orderBy('posted_at', 'desc');
-
-    // Filter based on fetch_my
-    if (fetch_my) {
-      query = query.where('phone', '==', phone);
-    } else {
-      query = query.where('phone', '!=', phone);
-    }
-
-    const offset = (page - 1) * limit;
 
     const snapshot = await query.get();
-    const allDocs = snapshot.docs;
+    const questions = [];
 
-    const paginatedDocs = allDocs.slice(offset, offset + limit).map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    return res.status(200).json({
-      success: true,
-      currentPage: page,
-      totalItems: allDocs.length,
-      totalPages: Math.ceil(allDocs.length / limit),
-      data: paginatedDocs
+    snapshot.forEach((doc) => {
+      questions.push({ id: doc.id, ...doc.data() });
     });
 
+    res.json({
+      questions,
+      lastVisible:
+        snapshot.docs.length > 0
+          ? snapshot.docs[snapshot.docs.length - 1].id
+          : null,
+    });
   } catch (error) {
-    console.error('Error getting questions:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error. Try again.',
-      error: error.message
-    });
+    console.error("Error fetching questions:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
+};
+
+const getUserQuestions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit = 10, lastVisible } = req.query;
+
+    console.log("Fetching for userId:", userId);
+
+    let query = db
+      .collection("questions")
+      .where("userId", "==", userId)
+      .orderBy("timestamp", "desc")
+      .limit(Number(limit));
+
+    // ✅ Pagination using Unix timestamp
+    if (lastVisible) {
+      const lastTimestamp = Number(lastVisible); // convert query param to number
+      query = query.startAfter(lastTimestamp);
+    }
+
+    const snapshot = await query.get();
+    const questions = [];
+
+    snapshot.forEach((doc) => {
+      questions.push({ id: doc.id, ...doc.data() });
+    });
+
+    // Send back the last timestamp for next pagination
+    const newLastVisible =
+      snapshot.docs.length > 0
+        ? snapshot.docs[snapshot.docs.length - 1].data().timestamp
+        : null;
+
+    res.json({
+      questions,
+      lastVisible: newLastVisible,
+    });
+  } catch (error) {
+    console.error("Error fetching user questions:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// POST: Add or update an answer to a question
+const addAnswer = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const { content, answeredBy, role } = req.body;
+
+    if (!questionId || !content || !answeredBy || !role) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const questionRef = db.collection("questions").doc(questionId);
+    const questionSnapshot = await questionRef.get();
+
+    if (!questionSnapshot.exists) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    const unixTimestamp = Date.now(); // Universal Unix timestamp
+
+    const answerData = {
+      content,
+      answered_by: answeredBy,
+      role,
+      timestamp: unixTimestamp,
+    };
+
+    await questionRef.update({ answer: answerData });
+
+    res
+      .status(200)
+      .json({ message: "Answer added successfully", answer: answerData });
+  } catch (error) {
+    console.error("Error adding answer:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+module.exports = {
+  createQuestion,
+  getQuestions,
+  getUserQuestions,
+  addAnswer,
 };

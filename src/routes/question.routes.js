@@ -1,11 +1,16 @@
-const express = require('express');
-const questionController = require('../controllers/question.controller');
+const express = require("express");
+const {
+  createQuestion,
+  getQuestions,
+  getUserQuestions,
+  addAnswer,
+} = require("../controllers/question.controller");
 
 const router = express.Router();
 
-router.post('/post-question', questionController.postQuestion);
-router.post('/vote', questionController.vote);
-router.post('/remove-vote', questionController.removeVote);
-router.post('/get-all-questions', questionController.getAllQuestions);
+router.post("/create", createQuestion);
+router.get("/get", getQuestions);
+router.get("/user/:userId", getUserQuestions);
+router.get("/add/:questionId/answer", addAnswer);
 
 module.exports = router;
