@@ -46,8 +46,7 @@ const addComment = async (req, res) => {
 // GET: Fetch comments for a question with pagination
 const getComments = async (req, res) => {
   try {
-    const { questionId } = req.params;
-    const { limit = 10, lastVisible } = req.query;
+    const { limit = 10, lastVisible, questionId } = req.body;
 
     let query = db
       .collection("questions")
