@@ -17,6 +17,7 @@ const userQueryRoutes = require("./src/routes/user.query.routes");
 const fcmRoutes = require("./src/routes/fcm.routes");
 const notificationRoutes = require("./src/routes/notification.routes");
 const profilePhotoRoutes = require("./src/routes/profile.photo.routes");
+const userRaiseQueryRoutes = require("./src/routes/query.routes");
 
 app.use(express.json());
 app.use("/api", registerRoutes);
@@ -32,6 +33,7 @@ app.use("/api", userQueryRoutes);
 app.use("/api/fcm", fcmRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/profile", profilePhotoRoutes);
+app.use("/api/query/", userRaiseQueryRoutes);
 
 // ✅ Error handler for Multer file size limits
 app.use((err, req, res, next) => {
