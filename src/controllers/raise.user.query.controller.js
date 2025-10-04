@@ -45,7 +45,7 @@ exports.raiseQuery = async (req, res) => {
 // Accepts: role, phone, limit, lastDocId
 exports.getQueries = async (req, res) => {
   try {
-    const { role, phone, limit = 10, lastDocId } = req.body;
+    const { role, phone, limit = 10, lastDocId } = req.query;
 
     if (!role || !phone) {
       return res.status(400).json({
