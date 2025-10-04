@@ -1,56 +1,124 @@
-// controllers/questionController.js
+const { db, admin } = require("../config/firebase");
 
-const { db, admin } = require('../config/firebase');
-const { v4: uuidv4 } = require('uuid'); // To generate unique comment IDs
-
-exports.addComment = async (req, res) => {
+// POST: Add a comment to a question
+const addComment = async (req, res) => {
   try {
-    const { questionId, comment, phone, name, role } = req.body;
+    const { commentedBy, userRole, phone, profileImgUrl, content, questionId } =
+      req.body;
 
-    if (!questionId || !comment || !phone || !name || !role) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields.',
-      });
+    if (!content || !commentedBy || !questionId) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const questionRef = db.collection('questions').doc(questionId);
-    const doc = await questionRef.get();
+    const commentsRef = db
+      .collection("questions")
+      .doc(questionId)
+      .collection("comments");
+    const newCommentRef = commentsRef.doc();
 
-    if (!doc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: 'Question not found.',
-      });
-    }
+    const unixTimestamp = Date.now(); // Universal Unix timestamp in ms
 
-    const newComment = {
-      id: uuidv4(), // 🔑 Unique comment ID
-      comment,
+    const commentData = {
+      commentedBy,
+      userRole,
       phone,
-      name,
-      role,
-      upvotes: 0,
-      downvotes: 0,
-      commented_at: Math.floor(Date.now() / 1000)
+      profileImgUrl: profileImgUrl || null,
+      content,
+      timestamp: unixTimestamp,
     };
 
+    // Add the comment
+    await newCommentRef.set(commentData);
+
+    // Increment the comments count in the question document
+    const questionRef = db.collection("questions").doc(questionId);
     await questionRef.update({
-      comments: admin.firestore.FieldValue.arrayUnion(newComment)
+      commentsCount: admin.firestore.FieldValue.increment(1),
     });
 
-    return res.status(200).json({
-      success: true,
-      message: 'Comment added successfully.',
-      comment: newComment
-    });
-
+    res.status(201).json({ id: newCommentRef.id, ...commentData });
   } catch (error) {
-    console.error('Error adding comment:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error. Try again.',
-      error: error.message
-    });
+    console.error("Error adding comment:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
+};
+
+// GET: Fetch comments for a question with pagination
+const getComments = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const { limit = 10, lastVisible } = req.query;
+
+    let query = db
+      .collection("questions")
+      .doc(questionId)
+      .collection("comments")
+      .orderBy("timestamp", "desc")
+      .limit(Number(limit));
+
+    if (lastVisible) {
+      const lastDoc = await db
+        .collection("questions")
+        .doc(questionId)
+        .collection("comments")
+        .doc(lastVisible)
+        .get();
+
+      if (lastDoc.exists) {
+        query = query.startAfter(lastDoc.data().timestamp); // ✅ use Unix timestamp
+      }
+    }
+
+    const snapshot = await query.get();
+    const comments = [];
+
+    snapshot.forEach((doc) => {
+      comments.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.json({
+      comments,
+      lastVisible:
+        snapshot.docs.length > 0
+          ? snapshot.docs[snapshot.docs.length - 1].id
+          : null,
+    });
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// GET: Fetch comments count for a question
+const getCommentsCount = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+
+    if (!questionId) {
+      return res.status(400).json({ error: "Missing questionId" });
+    }
+
+    const questionSnapshot = await db
+      .collection("questions")
+      .doc(questionId)
+      .get();
+
+    if (!questionSnapshot.exists) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    const data = questionSnapshot.data();
+    const commentsCount = data.commentsCount || 0;
+
+    res.status(200).json({ questionId, commentsCount });
+  } catch (error) {
+    console.error("Error fetching comments count:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+module.exports = {
+  addComment,
+  getComments,
+  getCommentsCount,
 };
