@@ -15,8 +15,9 @@ const addComment = async (req, res) => {
     const unixTimestamp = Date.now();
     const fourHoursAgo = unixTimestamp - 4 * 60 * 60 * 1000;
 
-    // 🔹 Check user comments in the last 4 hours (global)
     const userCommentsRef = db.collection("userComments");
+
+    // 🔹 Query only if commentedBy exists
     const recentUserCommentsSnap = await userCommentsRef
       .where("commentedBy", "==", commentedBy)
       .where("timestamp", ">=", fourHoursAgo)
@@ -28,17 +29,18 @@ const addComment = async (req, res) => {
       });
     }
 
-    // 🔹 Add comment in question's subcollection
+    // 🔹 Add comment to question
     const commentsRef = db
       .collection("questions")
       .doc(questionId)
       .collection("comments");
 
     const newCommentRef = commentsRef.doc();
+
     const commentData = {
       commentedBy,
-      userRole,
-      phone,
+      userRole: userRole || null,
+      phone: phone || null,
       profileImgUrl: profileImgUrl || null,
       content,
       timestamp: unixTimestamp,
@@ -52,7 +54,7 @@ const addComment = async (req, res) => {
       commentsCount: admin.firestore.FieldValue.increment(1),
     });
 
-    // 🔹 Also save to userComments (global tracking)
+    // 🔹 Save a copy in userComments for global tracking
     await userCommentsRef.add({
       ...commentData,
       questionId,
@@ -60,10 +62,11 @@ const addComment = async (req, res) => {
 
     res.status(201).json({ id: newCommentRef.id, ...commentData });
   } catch (error) {
-    console.error("Error adding comment:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("🔥 Error adding comment:", error.message, error.stack);
+    res.status(500).json({ error: error.message });
   }
 };
+
 
 // GET: Fetch comments for a question with pagination
 const getComments = async (req, res) => {
