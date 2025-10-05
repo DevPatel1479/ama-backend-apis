@@ -1,6 +1,8 @@
 const { db, admin } = require("../config/firebase");
 
 // POST: Add a comment to a question
+// POST: Add a comment to a question
+// POST: Add a comment to a question
 const addComment = async (req, res) => {
   try {
     const { commentedBy, userRole, phone, profileImgUrl, content, questionId } =
@@ -10,14 +12,29 @@ const addComment = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    const unixTimestamp = Date.now();
+    const fourHoursAgo = unixTimestamp - 4 * 60 * 60 * 1000;
+
+    // 🔹 Check user comments in the last 4 hours (global)
+    const userCommentsRef = db.collection("userComments");
+    const recentUserCommentsSnap = await userCommentsRef
+      .where("commentedBy", "==", commentedBy)
+      .where("timestamp", ">=", fourHoursAgo)
+      .get();
+
+    if (recentUserCommentsSnap.size >= 5) {
+      return res.status(429).json({
+        error: "Comment limit reached. Try again after 4 hours.",
+      });
+    }
+
+    // 🔹 Add comment in question's subcollection
     const commentsRef = db
       .collection("questions")
       .doc(questionId)
       .collection("comments");
+
     const newCommentRef = commentsRef.doc();
-
-    const unixTimestamp = Date.now(); // Universal Unix timestamp in ms
-
     const commentData = {
       commentedBy,
       userRole,
@@ -27,13 +44,18 @@ const addComment = async (req, res) => {
       timestamp: unixTimestamp,
     };
 
-    // Add the comment
     await newCommentRef.set(commentData);
 
-    // Increment the comments count in the question document
+    // 🔹 Update question comment count
     const questionRef = db.collection("questions").doc(questionId);
     await questionRef.update({
       commentsCount: admin.firestore.FieldValue.increment(1),
+    });
+
+    // 🔹 Also save to userComments (global tracking)
+    await userCommentsRef.add({
+      ...commentData,
+      questionId,
     });
 
     res.status(201).json({ id: newCommentRef.id, ...commentData });
@@ -42,7 +64,6 @@ const addComment = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
 
 // GET: Fetch comments for a question with pagination
 const getComments = async (req, res) => {
