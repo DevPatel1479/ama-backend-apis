@@ -43,6 +43,7 @@ const addComment = async (req, res) => {
   }
 };
 
+
 // GET: Fetch comments for a question with pagination
 const getComments = async (req, res) => {
   try {
