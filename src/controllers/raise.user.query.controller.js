@@ -13,19 +13,32 @@ exports.raiseQuery = async (req, res) => {
       });
     }
 
-    const docId = `${role}_${phone}`;
+    const parentDocId = `${role}_${phone}`;
     const timestamp = Math.floor(Date.now() / 1000); // unix timestamp
 
+    const userDocRef = db.collection("queries").doc(parentDocId);
+    const newQueryRef = userDocRef.collection("userQueries").doc(); // generate id
+
+    // Build payload with helpful metadata so allQueries is self-contained
     const queryData = {
+      queryId: newQueryRef.id, // generated id
+      role,
+      phone,
+      parentDocId, // helpful for tracing
       query,
       submitted_at: timestamp,
       status: "pending",
     };
 
-    const userDocRef = db.collection("queries").doc(docId);
+    // Mirror doc in top-level 'allQueries' with same id (so it's easy to correlate)
+    const allQueriesRef = db.collection("allQueries").doc(newQueryRef.id);
 
-    // Store each query in a subcollection for efficiency
-    await userDocRef.collection("userQueries").add(queryData);
+    // Use a batch to write both docs atomically
+    const batch = db.batch();
+    batch.set(newQueryRef, queryData); // subcollection doc
+    batch.set(allQueriesRef, queryData); // top-level mirrored doc
+
+    await batch.commit();
 
     return res.status(201).json({
       success: true,
@@ -41,10 +54,8 @@ exports.raiseQuery = async (req, res) => {
   }
 };
 
-// GET /get-queries with cursor-based pagination
-// Accepts: role, phone, limit, lastDocId
 // GET /get-queries
-// Accepts: role, phone, limit, lastSubmittedAt (cursor for pagination)
+// Accepts: role, phone, limit, lastSubmittedAt
 exports.getQueries = async (req, res) => {
   try {
     const { role, phone, limit = 10, lastSubmittedAt } = req.query;
@@ -52,7 +63,7 @@ exports.getQueries = async (req, res) => {
 
     let queryRef;
 
-    // 🔹 Case 1: Fetch specific user's queries (existing behavior)
+    // Case 1: specific user's queries (unchanged)
     if (role && phone) {
       const docId = `${role}_${phone}`;
       queryRef = db
@@ -66,10 +77,10 @@ exports.getQueries = async (req, res) => {
         queryRef = queryRef.startAfter(parseInt(lastSubmittedAt, 10));
       }
     }
-    // 🔹 Case 2: Fetch ALL queries (new feature)
+    // Case 2: global queries -> use top-level allQueries (no collectionGroup)
     else {
       queryRef = db
-        .collectionGroup("userQueries")
+        .collection("allQueries")
         .orderBy("submitted_at", "desc")
         .limit(limitInt);
 
@@ -93,7 +104,7 @@ exports.getQueries = async (req, res) => {
     snapshot.forEach((doc) => {
       queries.push({
         id: doc.id,
-        path: doc.ref.path, // to know which user it belongs to
+        path: doc.ref.path,
         ...doc.data(),
       });
     });
@@ -104,9 +115,19 @@ exports.getQueries = async (req, res) => {
       success: true,
       message: "Queries fetched successfully.",
       queries,
-      nextPageCursor: lastQuery.submitted_at, // pass this in next call
+      nextPageCursor: lastQuery.submitted_at, // send timestamp as cursor
     });
   } catch (error) {
+    // Optional: detect Firestore index error and return friendly message
+    if (error && error.code === 9) {
+      console.error("Firestore index error in getQueries:", error);
+      return res.status(500).json({
+        success: false,
+        message:
+          "Firestore requires an index for this query. If you're using collectionGroup, create the required index or use the top-level 'allQueries' collection.",
+      });
+    }
+
     console.error("Error in getQueries:", error);
     return res.status(500).json({
       success: false,
