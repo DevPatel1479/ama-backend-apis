@@ -26,7 +26,7 @@ exports.raiseQuery = async (req, res) => {
       phone,
       parentDocId, // helpful for tracing
       query,
-      name,
+      posted_by: name,
       submitted_at: timestamp,
       status: "pending",
     };
