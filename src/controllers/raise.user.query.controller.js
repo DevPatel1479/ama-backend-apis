@@ -4,7 +4,7 @@ const FieldValue = admin.firestore.FieldValue;
 // POST /raise-query
 exports.raiseQuery = async (req, res) => {
   try {
-    const { role, phone, query } = req.body;
+    const { role, phone, query, name } = req.body;
 
     if (!role || !phone || !query) {
       return res.status(400).json({
@@ -26,6 +26,7 @@ exports.raiseQuery = async (req, res) => {
       phone,
       parentDocId, // helpful for tracing
       query,
+      name,
       submitted_at: timestamp,
       status: "pending",
     };
