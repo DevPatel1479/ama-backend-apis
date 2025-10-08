@@ -43,62 +43,68 @@ exports.raiseQuery = async (req, res) => {
 
 // GET /get-queries with cursor-based pagination
 // Accepts: role, phone, limit, lastDocId
+// GET /get-queries
+// Accepts: role, phone, limit, lastSubmittedAt (cursor for pagination)
 exports.getQueries = async (req, res) => {
   try {
-    const { role, phone, limit = 10, lastDocId } = req.query;
+    const { role, phone, limit = 10, lastSubmittedAt } = req.query;
+    const limitInt = parseInt(limit, 10);
 
-    if (!role || !phone) {
-      return res.status(400).json({
-        success: false,
-        message: "role and phone are required.",
-      });
-    }
+    let queryRef;
 
-    const docId = `${role}_${phone}`;
-    let queryRef = db
-      .collection("queries")
-      .doc(docId)
-      .collection("userQueries")
-      .orderBy("submitted_at", "desc")
-      .limit(parseInt(limit, 10));
-
-    // If lastDocId is provided, start after that document for pagination
-    if (lastDocId) {
-      const lastDocSnap = await db
+    // 🔹 Case 1: Fetch specific user's queries (existing behavior)
+    if (role && phone) {
+      const docId = `${role}_${phone}`;
+      queryRef = db
         .collection("queries")
         .doc(docId)
         .collection("userQueries")
-        .doc(lastDocId)
-        .get();
+        .orderBy("submitted_at", "desc")
+        .limit(limitInt);
 
-      if (lastDocSnap.exists) {
-        queryRef = queryRef.startAfter(lastDocSnap);
+      if (lastSubmittedAt) {
+        queryRef = queryRef.startAfter(parseInt(lastSubmittedAt, 10));
+      }
+    }
+    // 🔹 Case 2: Fetch ALL queries (new feature)
+    else {
+      queryRef = db
+        .collectionGroup("userQueries")
+        .orderBy("submitted_at", "desc")
+        .limit(limitInt);
+
+      if (lastSubmittedAt) {
+        queryRef = queryRef.startAfter(parseInt(lastSubmittedAt, 10));
       }
     }
 
     const snapshot = await queryRef.get();
 
     if (snapshot.empty) {
-      return res.status(404).json({
-        success: false,
-        message: "No queries found for this user.",
+      return res.status(200).json({
+        success: true,
+        message: "No queries found.",
         queries: [],
+        nextPageCursor: null,
       });
     }
 
     const queries = [];
     snapshot.forEach((doc) => {
-      queries.push({ id: doc.id, ...doc.data() });
+      queries.push({
+        id: doc.id,
+        path: doc.ref.path, // to know which user it belongs to
+        ...doc.data(),
+      });
     });
 
-    // Return last document id for next page
-    const newLastDocId = queries[queries.length - 1].id;
+    const lastQuery = queries[queries.length - 1];
 
     return res.status(200).json({
       success: true,
       message: "Queries fetched successfully.",
       queries,
-      nextPageCursor: newLastDocId, // frontend can pass this for next page
+      nextPageCursor: lastQuery.submitted_at, // pass this in next call
     });
   } catch (error) {
     console.error("Error in getQueries:", error);
