@@ -6,6 +6,6 @@ const {
 } = require("../controllers/notification.controller");
 
 router.post("/send-topic-notification", sendTopicNotification);
-router.post("/get-notification/:role", getNotificationsByRole);
+router.get("/get-notification/:role", getNotificationsByRole);
 
 module.exports = router;
