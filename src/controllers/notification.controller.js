@@ -23,12 +23,12 @@ exports.sendTopicNotification = async (req, res) => {
     }
     const role = user_id.substring(0, underscoreIndex).toLowerCase();
 
-    // Prevent writing/sending to admin role (optional)
-    if (role === "admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Sending to admin is not allowed" });
-    }
+    // // Prevent writing/sending to admin role (optional)
+    // if (role === "admin") {
+    //   return res
+    //     .status(403)
+    //     .json({ success: false, message: "Sending to admin is not allowed" });
+    // }
 
     const topics = Array.isArray(topic) ? topic : [topic];
 
