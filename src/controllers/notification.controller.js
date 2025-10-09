@@ -83,9 +83,7 @@ exports.sendTopicNotification = async (req, res) => {
     await Promise.all(storePromises);
     return res.status(200).json({
       success: true,
-      message: `Notification sent to topic(s): ${topics.join(
-        ", "
-      )} and stored for role: ${role}`,
+      message: `Notification sent to topic(s): ${topics.join(", ")}`,
     });
   } catch (error) {
     console.error("Error sending notification:", error);
