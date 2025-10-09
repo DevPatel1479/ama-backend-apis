@@ -14,7 +14,7 @@ exports.sendTopicNotification = async (req, res) => {
     // Extract role from user_id which is in format role_phone
     // e.g. client_9876... -> role = 'client'
 
-    const role = "";
+    let role = "";
     if (topic === "all_clients") {
       role = "client";
     } else {
