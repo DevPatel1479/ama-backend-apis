@@ -2,7 +2,7 @@ const { db, admin } = require("../config/firebase");
 
 exports.sendTopicNotification = async (req, res) => {
   try {
-    const { user_id, topic, n_title, n_body } = req.body;
+    const { user_id, topic, n_title, n_body, role_count } = req.body;
 
     if (!user_id || !topic || !n_title || !n_body) {
       return res.status(400).json({
@@ -14,12 +14,12 @@ exports.sendTopicNotification = async (req, res) => {
     // Extract role from user_id which is in format role_phone
     // e.g. client_9876... -> role = 'client'
 
-    let role = "";
-    if (topic === "all_clients") {
-      role = "client";
-    } else {
-      role = "advocate";
-    }
+    // let role = "";
+    // if (topic === "all_clients") {
+    //   role = "client";
+    // } else {
+    //   role = "advocate";
+    // }
 
     // // Prevent writing/sending to admin role (optional)
     // if (role === "admin") {
@@ -63,14 +63,24 @@ exports.sendTopicNotification = async (req, res) => {
       sent_by: user_id,
       topics: topics,
     };
+    const rolesToStore = [];
+    if (topics.includes("all_clients")) rolesToStore.push("client");
+    if (topics.includes("all_advocates")) rolesToStore.push("advocate");
 
-    // Path: notifications/{role}/messages
-    await db
-      .collection("notifications")
-      .doc(role)
-      .collection("messages")
-      .add(messageDoc);
-
+    // // Path: notifications/{role}/messages
+    // await db
+    //   .collection("notifications")
+    //   .doc(role)
+    //   .collection("messages")
+    //   .add(messageDoc);
+    const storePromises = rolesToStore.map((role) =>
+      db
+        .collection("notifications")
+        .doc(role)
+        .collection("messages")
+        .add(messageDoc)
+    );
+    await Promise.all(storePromises);
     return res.status(200).json({
       success: true,
       message: `Notification sent to topic(s): ${topics.join(
