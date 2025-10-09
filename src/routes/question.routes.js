@@ -11,6 +11,6 @@ const router = express.Router();
 router.post("/create", createQuestion);
 router.get("/get", getQuestions);
 router.get("/user/:userId", getUserQuestions);
-router.get("/add/:questionId/answer", addAnswer);
+router.post("/add/:questionId/answer", addAnswer);
 
 module.exports = router;
