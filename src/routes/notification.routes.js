@@ -1,7 +1,11 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { sendTopicNotification } = require('../controllers/notification.controller');
+const {
+  sendTopicNotification,
+  getNotificationsByRole,
+} = require("../controllers/notification.controller");
 
-router.post('/send-topic-notification', sendTopicNotification);
+router.post("/send-topic-notification", sendTopicNotification);
+router.post("/get-notification", getNotificationsByRole);
 
 module.exports = router;
