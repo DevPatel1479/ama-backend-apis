@@ -13,15 +13,13 @@ exports.sendTopicNotification = async (req, res) => {
 
     // Extract role from user_id which is in format role_phone
     // e.g. client_9876... -> role = 'client'
-    const underscoreIndex = user_id.indexOf("_");
-    if (underscoreIndex === -1) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid user_id format. Expected format: role_phone (e.g. client_98765...)",
-      });
+
+    const role = "";
+    if (topic === "all_clients") {
+      role = "client";
+    } else {
+      role = "advocate";
     }
-    const role = user_id.substring(0, underscoreIndex).toLowerCase();
 
     // // Prevent writing/sending to admin role (optional)
     // if (role === "admin") {
