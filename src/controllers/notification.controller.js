@@ -66,6 +66,7 @@ exports.sendTopicNotification = async (req, res) => {
     const rolesToStore = [];
     if (topics.includes("all_clients")) rolesToStore.push("client");
     if (topics.includes("all_advocates")) rolesToStore.push("advocate");
+    if (topics.includes("all_users")) rolesToStore.push("user");
 
     // // Path: notifications/{role}/messages
     // await db
