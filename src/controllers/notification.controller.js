@@ -1,8 +1,106 @@
 const { db, admin } = require("../config/firebase");
 
+// exports.sendTopicNotification = async (req, res) => {
+//   try {
+//     const { user_id, topic, n_title, n_body, send_weekly } = req.body;
+
+//     if (!user_id || !topic || !n_title || !n_body) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "user_id, topic, n_title and n_body are required",
+//       });
+//     }
+
+//     // Extract role from user_id which is in format role_phone
+//     // e.g. client_9876... -> role = 'client'
+
+//     // let role = "";
+//     // if (topic === "all_clients") {
+//     //   role = "client";
+//     // } else {
+//     //   role = "advocate";
+//     // }
+
+//     // // Prevent writing/sending to admin role (optional)
+//     // if (role === "admin") {
+//     //   return res
+//     //     .status(403)
+//     //     .json({ success: false, message: "Sending to admin is not allowed" });
+//     // }
+
+//     const topics = Array.isArray(topic) ? topic : [topic];
+
+//     // verify user exists (optional but good)
+//     const userDoc = await db.collection("login_users").doc(user_id).get();
+//     if (!userDoc.exists) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "User not found" });
+//     }
+
+//     // Send to topics via FCM
+//     const messagePayload = {
+//       notification: {
+//         title: n_title,
+//         body: n_body,
+//       },
+//     };
+
+//     const sendPromises = topics.map(async (t) => {
+//       const msg = { ...messagePayload, topic: t };
+//       return admin.messaging().send(msg);
+//     });
+
+//     await Promise.all(sendPromises);
+
+//     // Write notification record into Firestore under notifications/{role}/messages/{autoId}
+//     // Use unix timestamp (seconds)
+//     const unixTs = Math.floor(Date.now() / 1000);
+//     const messageDoc = {
+//       n_title,
+//       n_body,
+//       timestamp: unixTs, // numeric unix time in seconds
+//       sent_by: user_id,
+//       topics: topics,
+//     };
+//     const rolesToStore = [];
+//     if (topics.includes("all_clients")) rolesToStore.push("client");
+//     if (topics.includes("all_advocates")) rolesToStore.push("advocate");
+//     if (topics.includes("all_users")) rolesToStore.push("user");
+
+//     // // Path: notifications/{role}/messages
+//     // await db
+//     //   .collection("notifications")
+//     //   .doc(role)
+//     //   .collection("messages")
+//     //   .add(messageDoc);
+//     const storePromises = rolesToStore.map((role) =>
+//       db
+//         .collection("notifications")
+//         .doc(role)
+//         .collection("messages")
+//         .add(messageDoc)
+//     );
+//     await Promise.all(storePromises);
+//     return res.status(200).json({
+//       success: true,
+//       message: `Notification sent to topic(s): ${topics.join(", ")}`,
+//     });
+//   } catch (error) {
+//     console.error("Error sending notification:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to send notification",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// ====== Version 2 =======
+
 exports.sendTopicNotification = async (req, res) => {
   try {
-    const { user_id, topic, n_title, n_body, role_count } = req.body;
+    const { user_id, topic, n_title, n_body, send_weekly } = req.body;
 
     if (!user_id || !topic || !n_title || !n_body) {
       return res.status(400).json({
@@ -11,26 +109,9 @@ exports.sendTopicNotification = async (req, res) => {
       });
     }
 
-    // Extract role from user_id which is in format role_phone
-    // e.g. client_9876... -> role = 'client'
-
-    // let role = "";
-    // if (topic === "all_clients") {
-    //   role = "client";
-    // } else {
-    //   role = "advocate";
-    // }
-
-    // // Prevent writing/sending to admin role (optional)
-    // if (role === "admin") {
-    //   return res
-    //     .status(403)
-    //     .json({ success: false, message: "Sending to admin is not allowed" });
-    // }
-
     const topics = Array.isArray(topic) ? topic : [topic];
 
-    // verify user exists (optional but good)
+    // Verify user exists (optional)
     const userDoc = await db.collection("login_users").doc(user_id).get();
     if (!userDoc.exists) {
       return res
@@ -38,7 +119,7 @@ exports.sendTopicNotification = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Send to topics via FCM
+    // Prepare notification payload
     const messagePayload = {
       notification: {
         title: n_title,
@@ -46,46 +127,91 @@ exports.sendTopicNotification = async (req, res) => {
       },
     };
 
-    const sendPromises = topics.map(async (t) => {
-      const msg = { ...messagePayload, topic: t };
-      return admin.messaging().send(msg);
-    });
+    if (send_weekly) {
+      // WEEKLY NOTIFICATION LOGIC
+      // topic array contains week names, e.g., ['first_week', 'third_week']
+      const weekTopics = topics;
 
-    await Promise.all(sendPromises);
+      // Fetch all clients whose week_topic matches any value in weekTopics
+      const clientsSnap = await db
+        .collection("login_users")
+        .where("week_topic", "in", weekTopics) // Firestore supports max 10 values in 'in'
+        .get();
 
-    // Write notification record into Firestore under notifications/{role}/messages/{autoId}
-    // Use unix timestamp (seconds)
-    const unixTs = Math.floor(Date.now() / 1000);
-    const messageDoc = {
-      n_title,
-      n_body,
-      timestamp: unixTs, // numeric unix time in seconds
-      sent_by: user_id,
-      topics: topics,
-    };
-    const rolesToStore = [];
-    if (topics.includes("all_clients")) rolesToStore.push("client");
-    if (topics.includes("all_advocates")) rolesToStore.push("advocate");
-    if (topics.includes("all_users")) rolesToStore.push("user");
+      const clientPromises = [];
+      clientsSnap.forEach((doc) => {
+        if (!doc.id.startsWith("client_")) return; // ensure only clients
+        const clientWeekTopic = doc.data().week_topic;
+        if (!weekTopics.includes(clientWeekTopic)) return;
 
-    // // Path: notifications/{role}/messages
-    // await db
-    //   .collection("notifications")
-    //   .doc(role)
-    //   .collection("messages")
-    //   .add(messageDoc);
-    const storePromises = rolesToStore.map((role) =>
-      db
+        weekTopics.forEach((week) => {
+          if (clientWeekTopic === week) {
+            const msg = { ...messagePayload, topic: week };
+            clientPromises.push(admin.messaging().send(msg));
+          }
+        });
+      });
+
+      await Promise.all(clientPromises);
+
+      // Store notification under 'client' role with week_notification: true
+      const unixTs = Math.floor(Date.now() / 1000);
+      const messageDoc = {
+        n_title,
+        n_body,
+        timestamp: unixTs,
+        sent_by: user_id,
+        topics: weekTopics,
+        week_notification: true,
+      };
+      await db
         .collection("notifications")
-        .doc(role)
+        .doc("client")
         .collection("messages")
-        .add(messageDoc)
-    );
-    await Promise.all(storePromises);
-    return res.status(200).json({
-      success: true,
-      message: `Notification sent to topic(s): ${topics.join(", ")}`,
-    });
+        .add(messageDoc);
+
+      return res.status(200).json({
+        success: true,
+        message: `Weekly notification sent to topic(s): ${weekTopics.join(
+          ", "
+        )}`,
+      });
+    } else {
+      // DEFAULT LOGIC (all_clients / all_advocates / all_users)
+      const sendPromises = topics.map(async (t) => {
+        const msg = { ...messagePayload, topic: t };
+        return admin.messaging().send(msg);
+      });
+      await Promise.all(sendPromises);
+
+      const unixTs = Math.floor(Date.now() / 1000);
+      const messageDoc = {
+        n_title,
+        n_body,
+        timestamp: unixTs,
+        sent_by: user_id,
+        topics: topics,
+      };
+
+      const rolesToStore = [];
+      if (topics.includes("all_clients")) rolesToStore.push("client");
+      if (topics.includes("all_advocates")) rolesToStore.push("advocate");
+      if (topics.includes("all_users")) rolesToStore.push("user");
+
+      const storePromises = rolesToStore.map((role) =>
+        db
+          .collection("notifications")
+          .doc(role)
+          .collection("messages")
+          .add(messageDoc)
+      );
+      await Promise.all(storePromises);
+
+      return res.status(200).json({
+        success: true,
+        message: `Notification sent to topic(s): ${topics.join(", ")}`,
+      });
+    }
   } catch (error) {
     console.error("Error sending notification:", error);
     return res.status(500).json({
