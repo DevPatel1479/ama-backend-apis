@@ -3,49 +3,44 @@ const { db } = require("../config/firebase");
 
 exports.getWeeklyClientCount = async (req, res) => {
   try {
-    const { week } = req.body;
-    if (!week) {
-      return res.status(400).json({ error: "Week name is required" });
-    }
-
-    const weekOrder = {
-      first_week: 1,
-      second_week: 2,
-      third_week: 3,
-      fourth_week: 4,
-    };
-    const targetWeek = weekOrder[week];
-    if (!targetWeek) {
-      return res.status(400).json({ error: "Invalid week name" });
-    }
-
-    // Get all client docs (ID starts with "client_")
+    // Fetch all client documents once
     const snapshot = await db.collection("login_users").get();
 
-    let totalCount = 0;
+    // Filter only client documents
+    const clientDocs = snapshot.docs.filter((doc) =>
+      doc.id.startsWith("client_")
+    );
 
-    snapshot.forEach((doc) => {
-      const docId = doc.id;
-      if (!docId.startsWith("client_")) return; // skip non-clients
+    // Function to count clients for a given week number
+    const countForWeek = (weekNum) => {
+      return clientDocs.reduce((count, doc) => {
+        const startDateStr = doc.data().start_date;
+        if (!startDateStr) return count;
 
-      const data = doc.data();
-      const startDateStr = data.start_date;
-      if (!startDateStr) return;
+        const dayOfMonth = new Date(startDateStr).getDate();
+        const docWeekNum =
+          dayOfMonth <= 7 ? 1 : dayOfMonth <= 14 ? 2 : dayOfMonth <= 21 ? 3 : 4;
 
-      const startDate = new Date(startDateStr);
-      const dayOfMonth = startDate.getDate();
+        return docWeekNum === weekNum ? count + 1 : count;
+      }, 0);
+    };
 
-      // Determine which week of the month it falls into
-      const weekNum =
-        dayOfMonth <= 7 ? 1 : dayOfMonth <= 14 ? 2 : dayOfMonth <= 21 ? 3 : 4;
-
-      if (weekNum === targetWeek) totalCount++;
-    });
+    // Run all weeks in parallel
+    const [first, second, third, fourth] = await Promise.all([
+      countForWeek(1),
+      countForWeek(2),
+      countForWeek(3),
+      countForWeek(4),
+    ]);
 
     return res.status(200).json({
       success: true,
-      week,
-      total_clients: totalCount,
+      total_clients_by_week: {
+        first_week: first,
+        second_week: second,
+        third_week: third,
+        fourth_week: fourth,
+      },
     });
   } catch (error) {
     console.error("Error fetching weekly client count:", error);
