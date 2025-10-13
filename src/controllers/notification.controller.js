@@ -128,31 +128,15 @@ exports.sendTopicNotification = async (req, res) => {
     };
 
     if (send_weekly) {
-      // WEEKLY NOTIFICATION LOGIC
-      // topic array contains week names, e.g., ['first_week', 'third_week']
-      const weekTopics = topics;
+      const weekTopics = topics; // e.g., ["first_week", "third_week"]
 
-      // Fetch all clients whose week_topic matches any value in weekTopics
-      const clientsSnap = await db
-        .collection("login_users")
-        .where("week_topic", "in", weekTopics) // Firestore supports max 10 values in 'in'
-        .get();
-
-      const clientPromises = [];
-      clientsSnap.forEach((doc) => {
-        if (!doc.id.startsWith("client_")) return; // ensure only clients
-        const clientWeekTopic = doc.data().week_topic;
-        if (!weekTopics.includes(clientWeekTopic)) return;
-
-        weekTopics.forEach((week) => {
-          if (clientWeekTopic === week) {
-            const msg = { ...messagePayload, topic: week };
-            clientPromises.push(admin.messaging().send(msg));
-          }
-        });
+      // Send notification once per topic
+      const sendPromises = weekTopics.map((week) => {
+        const msg = { ...messagePayload, topic: week };
+        return admin.messaging().send(msg); // only 1 send per topic
       });
 
-      await Promise.all(clientPromises);
+      await Promise.all(sendPromises);
 
       // Store notification under 'client' role with week_notification: true
       const unixTs = Math.floor(Date.now() / 1000);
