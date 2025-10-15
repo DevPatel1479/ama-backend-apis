@@ -39,7 +39,7 @@ exports.sendNotificationToAllAdvocates = async (req, res) => {
       n_body,
       timestamp: unixTs,
       sent_by: user_id,
-      topics: [topics],
+      topics: topics,
     };
 
     const rolesToStore = [];
