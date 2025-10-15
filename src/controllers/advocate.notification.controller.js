@@ -27,9 +27,10 @@ exports.sendNotificationToAllAdvocates = async (req, res) => {
       },
     };
 
-    const sendPromises = topics.map((topic) =>
-      admin.messaging().sendToTopic(topic, messagePayload)
-    );
+    const sendPromises = topics.map(async (t) => {
+      const msg = { ...messagePayload, topic: t };
+      return admin.messaging().send(msg);
+    });
     await Promise.all(sendPromises);
 
     const unixTs = Math.floor(Date.now() / 1000);
