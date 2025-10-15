@@ -21,10 +21,12 @@ exports.sendNotificationToAllAdvocates = async (req, res) => {
 
     // Prepare notification payload
     const messagePayload = {
-      notification: {
+      data: {
         title: n_title,
         body: n_body,
+        type: "advocate_notification", // optional tag
       },
+      topic: "all_advocates",
     };
 
     const sendPromises = topics.map(async (t) => {
