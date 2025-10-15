@@ -13,25 +13,45 @@ exports.raiseQuery = async (req, res) => {
       });
     }
 
+    // Document ID format for app_clients
+    const clientDocId = `ama_${role}_${phone}`;
+
+    // Fetch alloc_adv and alloc_adv_secondary
+    const clientDocRef = db.collection("app_clients").doc(clientDocId);
+    const clientSnapshot = await clientDocRef.get();
+
+    if (!clientSnapshot.exists) {
+      return res.status(404).json({
+        success: false,
+        message: `Client document not found for ID: ${clientDocId}`,
+      });
+    }
+
+    const clientData = clientSnapshot.data();
+    const { alloc_adv, alloc_adv_secondary } = clientData;
+
+    // Now proceed with adding query
     const parentDocId = `${role}_${phone}`;
     const timestamp = Math.floor(Date.now() / 1000); // unix timestamp
 
     const userDocRef = db.collection("queries").doc(parentDocId);
     const newQueryRef = userDocRef.collection("userQueries").doc(); // generate id
 
-    // Build payload with helpful metadata so allQueries is self-contained
+    // Build payload with helpful metadata + alloc_adv info
     const queryData = {
       queryId: newQueryRef.id, // generated id
       role,
       phone,
-      parentDocId, // helpful for tracing
+      parentDocId,
       query,
       posted_by: name,
       submitted_at: timestamp,
       status: "pending",
+      alloc_adv: alloc_adv || null,
+      alloc_adv_secondary: alloc_adv_secondary || null,
     };
 
-    // Mirror doc in top-level 'allQueries' with same id (so it's easy to correlate)
+    // Mirror doc in top-level 'allQueries' with same id
     const allQueriesRef = db.collection("allQueries").doc(newQueryRef.id);
 
     // Use a batch to write both docs atomically
