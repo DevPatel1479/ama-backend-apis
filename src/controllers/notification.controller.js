@@ -222,6 +222,74 @@ exports.sendTopicNotification = async (req, res) => {
  * Example:
  * GET /notifications/client?pageSize=10&startAfter=1690000000
  */
+// exports.getNotificationsByRole = async (req, res) => {
+//   try {
+//     const role = (req.params.role || "").toLowerCase();
+//     if (!role) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Role path param is required" });
+//     }
+//     if (role === "admin") {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Access to admin notifications denied",
+//       });
+//     }
+
+//     const pageSize = parseInt(req.query.pageSize, 10) || 20;
+//     const startAfter = req.query.startAfter
+//       ? parseInt(req.query.startAfter, 10)
+//       : null;
+
+//     let queryRef = db
+//       .collection("notifications")
+//       .doc(role)
+//       .collection("messages")
+//       .orderBy("timestamp", "desc")
+//       .limit(pageSize);
+
+//     if (startAfter !== null && !Number.isNaN(startAfter)) {
+//       // Since we ordered by timestamp descending, startAfter will skip items with timestamp >= supplied value.
+//       // We want items after the cursor, so use startAfter(startAfter)
+//       queryRef = queryRef.startAfter(startAfter);
+//     }
+
+//     const snap = await queryRef.get();
+
+//     const results = [];
+//     let lastTimestamp = null;
+//     snap.forEach((doc) => {
+//       const d = doc.data();
+//       results.push({
+//         id: doc.id,
+//         n_title: d.n_title,
+//         n_body: d.n_body,
+//         timestamp: d.timestamp,
+//         sent_by: d.sent_by || null,
+//         topics: d.topics || [],
+//       });
+//       lastTimestamp = d.timestamp;
+//     });
+
+//     // If number of results equals pageSize, return lastTimestamp as nextPageCursor
+//     const nextPageCursor = results.length === pageSize ? lastTimestamp : null;
+
+//     return res.status(200).json({
+//       success: true,
+//       data: results,
+//       nextPageCursor,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching notifications:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch notifications",
+//       error: error.message,
+//     });
+//   }
+// };
+
 exports.getNotificationsByRole = async (req, res) => {
   try {
     const role = (req.params.role || "").toLowerCase();
@@ -230,6 +298,7 @@ exports.getNotificationsByRole = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Role path param is required" });
     }
+
     if (role === "admin") {
       return res.status(403).json({
         success: false,
@@ -238,9 +307,7 @@ exports.getNotificationsByRole = async (req, res) => {
     }
 
     const pageSize = parseInt(req.query.pageSize, 10) || 20;
-    const startAfter = req.query.startAfter
-      ? parseInt(req.query.startAfter, 10)
-      : null;
+    const startAfterId = req.query.startAfterId || null;
 
     let queryRef = db
       .collection("notifications")
@@ -249,16 +316,24 @@ exports.getNotificationsByRole = async (req, res) => {
       .orderBy("timestamp", "desc")
       .limit(pageSize);
 
-    if (startAfter !== null && !Number.isNaN(startAfter)) {
-      // Since we ordered by timestamp descending, startAfter will skip items with timestamp >= supplied value.
-      // We want items after the cursor, so use startAfter(startAfter)
-      queryRef = queryRef.startAfter(startAfter);
+    // If a cursor is passed, start after that document
+    if (startAfterId) {
+      const lastDoc = await db
+        .collection("notifications")
+        .doc(role)
+        .collection("messages")
+        .doc(startAfterId)
+        .get();
+      if (lastDoc.exists) {
+        queryRef = queryRef.startAfter(lastDoc);
+      }
     }
 
     const snap = await queryRef.get();
 
     const results = [];
-    let lastTimestamp = null;
+    let lastDocId = null;
+
     snap.forEach((doc) => {
       const d = doc.data();
       results.push({
@@ -269,11 +344,10 @@ exports.getNotificationsByRole = async (req, res) => {
         sent_by: d.sent_by || null,
         topics: d.topics || [],
       });
-      lastTimestamp = d.timestamp;
+      lastDocId = doc.id;
     });
 
-    // If number of results equals pageSize, return lastTimestamp as nextPageCursor
-    const nextPageCursor = results.length === pageSize ? lastTimestamp : null;
+    const nextPageCursor = results.length === pageSize ? lastDocId : null;
 
     return res.status(200).json({
       success: true,
