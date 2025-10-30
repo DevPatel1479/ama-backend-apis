@@ -306,53 +306,69 @@ exports.getNotificationsByRole = async (req, res) => {
       });
     }
 
-    const pageSize = parseInt(req.query.pageSize, 10) || 20;
-    const startAfterId = req.query.startAfterId || null;
+    // 🟢 Read page & limit params
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
 
-    let queryRef = db
+    if (page < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Page number must be greater than 0",
+      });
+    }
+
+    // 🟢 Calculate offset
+    const offset = (page - 1) * limit;
+
+    // 🟢 Fetch all documents ordered by timestamp
+    const messagesRef = db
       .collection("notifications")
       .doc(role)
       .collection("messages")
-      .orderBy("timestamp", "desc")
-      .limit(pageSize);
+      .orderBy("timestamp", "desc");
 
-    // If a cursor is passed, start after that document
-    if (startAfterId) {
-      const lastDoc = await db
-        .collection("notifications")
-        .doc(role)
-        .collection("messages")
-        .doc(startAfterId)
-        .get();
-      if (lastDoc.exists) {
-        queryRef = queryRef.startAfter(lastDoc);
-      }
+    const snapshot = await messagesRef.get();
+
+    if (snapshot.empty) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: "No notifications found",
+        page,
+        hasMore: false,
+      });
     }
 
-    const snap = await queryRef.get();
+    // 🟢 Slice manually based on offset & limit
+    const allDocs = snapshot.docs;
+    const paginatedDocs = allDocs.slice(offset, offset + limit);
 
-    const results = [];
-    let lastDocId = null;
-
-    snap.forEach((doc) => {
+    const results = paginatedDocs.map((doc) => {
       const d = doc.data();
-      results.push({
+      return {
         id: doc.id,
         n_title: d.n_title,
         n_body: d.n_body,
         timestamp: d.timestamp,
         sent_by: d.sent_by || null,
         topics: d.topics || [],
-      });
-      lastDocId = doc.id;
+      };
     });
 
-    const nextPageCursor = results.length === pageSize ? lastDocId : null;
+    const totalDocs = allDocs.length;
+    const totalPages = Math.ceil(totalDocs / limit);
+    const hasMore = page < totalPages;
 
     return res.status(200).json({
       success: true,
       data: results,
-      nextPageCursor,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalDocs,
+        hasMore,
+        nextPage: hasMore ? page + 1 : null,
+      },
     });
   } catch (error) {
     console.error("Error fetching notifications:", error);
