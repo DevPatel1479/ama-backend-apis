@@ -119,7 +119,6 @@ exports.sendTopicNotification = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Prepare notification payload
     const messagePayload = {
       notification: {
         title: n_title,
@@ -135,6 +134,11 @@ exports.sendTopicNotification = async (req, res) => {
         },
       },
       apns: {
+        headers: {
+          "apns-priority": "10", // must be string "10" for immediate display
+          "apns-push-type": "alert",
+          "apns-topic": "com.ama.amaLegalSolutions", // 👈 IMPORTANT
+        },
         payload: {
           aps: {
             alert: {
@@ -142,7 +146,7 @@ exports.sendTopicNotification = async (req, res) => {
               body: n_body,
             },
             sound: "default",
-            contentAvailable: true, // ensures background delivery
+            badge: 1,
           },
         },
       },
