@@ -125,6 +125,27 @@ exports.sendTopicNotification = async (req, res) => {
         title: n_title,
         body: n_body,
       },
+      data: {
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+      },
+      android: {
+        notification: {
+          sound: "default",
+          priority: "high",
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              title: n_title,
+              body: n_body,
+            },
+            sound: "default",
+            contentAvailable: true, // ensures background delivery
+          },
+        },
+      },
     };
 
     if (send_weekly) {
