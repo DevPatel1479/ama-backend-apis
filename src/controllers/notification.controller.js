@@ -135,9 +135,9 @@ exports.sendTopicNotification = async (req, res) => {
       },
       apns: {
         headers: {
-          "apns-priority": "10", // must be string "10" for immediate display
+          "apns-priority": "10",
           "apns-push-type": "alert",
-          "apns-topic": "com.ama.amaLegalSolutions", // 👈 IMPORTANT
+          "apns-topic": "com.ama.amaLegalSolutions", // update if needed
         },
         payload: {
           aps: {
@@ -147,6 +147,7 @@ exports.sendTopicNotification = async (req, res) => {
             },
             sound: "default",
             badge: 1,
+            "content-available": 1, // 👈 Needed for background delivery
           },
         },
       },
