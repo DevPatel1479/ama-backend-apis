@@ -14,6 +14,8 @@ exports.registerUser = async (req, res) => {
     }
 
     const timestamp = Math.floor(Date.now() / 1000);
+    const today = new Date();
+    const start_date = today.toISOString().split("T")[0];
 
     await loginUsersRef.set({
       id: docId,
@@ -24,6 +26,7 @@ exports.registerUser = async (req, res) => {
       created_at: timestamp,
       updated_at: timestamp,
       status: "active",
+      start_date,
     });
 
     await db.collection("leads").add({
