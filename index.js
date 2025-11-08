@@ -23,6 +23,7 @@ const clientRoutes = require("./src/routes/client.route");
 const addTopicRoutes = require("./src/routes/add.topic.route");
 const advocateNotificationRoutes = require("./src/routes/advocate.notification.route");
 const feedbackRoutes = require("./src/routes/feedback.routes");
+const fileDisputeRoutes = require("./src/routes/file.dispute.routes");
 
 app.use(express.json());
 app.use("/api", registerRoutes);
@@ -44,6 +45,7 @@ app.use("/api/clients", clientRoutes);
 app.use("/api", addTopicRoutes);
 app.use("/api/notification/advocate", advocateNotificationRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api", fileDisputeRoutes);
 
 // ✅ Error handler for Multer file size limits
 app.use((err, req, res, next) => {
