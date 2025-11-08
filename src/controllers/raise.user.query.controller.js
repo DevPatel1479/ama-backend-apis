@@ -77,33 +77,117 @@ exports.raiseQuery = async (req, res) => {
 
 // GET /get-queries
 // Accepts: role, phone, limit, lastSubmittedAt
+// exports.getQueries = async (req, res) => {
+//   try {
+//     const { role, phone, limit = 10, lastSubmittedAt } = req.query;
+//     const limitInt = parseInt(limit, 10);
+
+//     let queryRef;
+
+//     // Case 1: specific user's queries (unchanged)
+//     if (role && phone) {
+//       const docId = `${role}_${phone}`;
+//       queryRef = db
+//         .collection("queries")
+//         .doc(docId)
+//         .collection("userQueries")
+//         .orderBy("submitted_at", "desc")
+//         .limit(limitInt);
+
+//       if (lastSubmittedAt) {
+//         queryRef = queryRef.startAfter(parseInt(lastSubmittedAt, 10));
+//       }
+//     }
+//     // Case 2: global queries -> use top-level allQueries (no collectionGroup)
+//     else {
+//       queryRef = db
+//         .collection("allQueries")
+//         .orderBy("submitted_at", "desc")
+//         .limit(limitInt);
+
+//       if (lastSubmittedAt) {
+//         queryRef = queryRef.startAfter(parseInt(lastSubmittedAt, 10));
+//       }
+//     }
+
+//     const snapshot = await queryRef.get();
+
+//     if (snapshot.empty) {
+//       return res.status(200).json({
+//         success: true,
+//         message: "No queries found.",
+//         queries: [],
+//         nextPageCursor: null,
+//       });
+//     }
+
+//     const queries = [];
+//     snapshot.forEach((doc) => {
+//       queries.push({
+//         id: doc.id,
+//         path: doc.ref.path,
+//         ...doc.data(),
+//       });
+//     });
+
+//     const lastQuery = queries[queries.length - 1];
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Queries fetched successfully.",
+//       queries,
+//       nextPageCursor: lastQuery.submitted_at, // send timestamp as cursor
+//     });
+//   } catch (error) {
+//     // Optional: detect Firestore index error and return friendly message
+//     if (error && error.code === 9) {
+//       console.error("Firestore index error in getQueries:", error);
+//       return res.status(500).json({
+//         success: false,
+//         message:
+//           "Firestore requires an index for this query. If you're using collectionGroup, create the required index or use the top-level 'allQueries' collection.",
+//       });
+//     }
+
+//     console.error("Error in getQueries:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error.",
+//     });
+//   }
+// };
+
+// controllers/queries.controller.js (or wherever getQueries is)
 exports.getQueries = async (req, res) => {
   try {
-    const { role, phone, limit = 10, lastSubmittedAt } = req.query;
-    const limitInt = parseInt(limit, 10);
+    const { role, phone, limit = 10, lastSubmittedAt, status } = req.query;
+    const limitInt = Math.max(1, Math.min(100, parseInt(limit, 10) || 10)); // guard
 
     let queryRef;
 
-    // Case 1: specific user's queries (unchanged)
+    // Per-user userQueries subcollection
     if (role && phone) {
       const docId = `${role}_${phone}`;
-      queryRef = db
-        .collection("queries")
-        .doc(docId)
-        .collection("userQueries")
-        .orderBy("submitted_at", "desc")
-        .limit(limitInt);
+      queryRef = db.collection("queries").doc(docId).collection("userQueries");
+
+      if (status) {
+        queryRef = queryRef.where("status", "==", status);
+      }
+
+      queryRef = queryRef.orderBy("submitted_at", "desc").limit(limitInt);
 
       if (lastSubmittedAt) {
+        // startAfter on timestamp number is ok if submitted_at is number
         queryRef = queryRef.startAfter(parseInt(lastSubmittedAt, 10));
       }
-    }
-    // Case 2: global queries -> use top-level allQueries (no collectionGroup)
-    else {
-      queryRef = db
-        .collection("allQueries")
-        .orderBy("submitted_at", "desc")
-        .limit(limitInt);
+    } else {
+      // Global queries
+      queryRef = db.collection("allQueries");
+      if (status) {
+        queryRef = queryRef.where("status", "==", status);
+      }
+
+      queryRef = queryRef.orderBy("submitted_at", "desc").limit(limitInt);
 
       if (lastSubmittedAt) {
         queryRef = queryRef.startAfter(parseInt(lastSubmittedAt, 10));
@@ -123,33 +207,34 @@ exports.getQueries = async (req, res) => {
 
     const queries = [];
     snapshot.forEach((doc) => {
+      const data = doc.data();
       queries.push({
         id: doc.id,
         path: doc.ref.path,
-        ...doc.data(),
+        ...data,
       });
     });
 
-    const lastQuery = queries[queries.length - 1];
+    // send last doc's submitted_at as cursor (number)
+    const lastDoc = queries[queries.length - 1];
+    const nextPageCursor = lastDoc ? lastDoc.submitted_at || null : null;
 
     return res.status(200).json({
       success: true,
       message: "Queries fetched successfully.",
       queries,
-      nextPageCursor: lastQuery.submitted_at, // send timestamp as cursor
+      nextPageCursor,
     });
   } catch (error) {
-    // Optional: detect Firestore index error and return friendly message
-    if (error && error.code === 9) {
-      console.error("Firestore index error in getQueries:", error);
+    console.error("Error in getQueries:", error);
+    // Firestore composite index note
+    if (error && error.code && error.code === 9) {
       return res.status(500).json({
         success: false,
         message:
-          "Firestore requires an index for this query. If you're using collectionGroup, create the required index or use the top-level 'allQueries' collection.",
+          "Firestore index required for this query (status + submitted_at). Create the composite index in Firebase console.",
       });
     }
-
-    console.error("Error in getQueries:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error.",
