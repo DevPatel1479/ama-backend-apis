@@ -448,17 +448,25 @@ exports.getUserNotificationHistory = async (req, res) => {
       });
     }
 
-    // 🔥 Reference the user's subcollection
-    let queryRef = db
+    const userMessagesRef = db
       .collection("notification_history")
       .doc(user_id)
-      .collection("messages")
+      .collection("messages");
+
+    let queryRef = userMessagesRef
       .orderBy("timestamp", "desc")
       .limit(pageLimit);
 
-    // 👇 For pagination (fetch records after lastTimestamp)
+    // 👇 Proper pagination: use snapshot, not raw value
     if (lastTimestamp) {
-      queryRef = queryRef.startAfter(parseInt(lastTimestamp, 10));
+      const lastDocSnapshot = await userMessagesRef
+        .where("timestamp", "==", parseInt(lastTimestamp, 10))
+        .limit(1)
+        .get();
+
+      if (!lastDocSnapshot.empty) {
+        queryRef = queryRef.startAfter(lastDocSnapshot.docs[0]);
+      }
     }
 
     const snapshot = await queryRef.get();
@@ -467,6 +475,7 @@ exports.getUserNotificationHistory = async (req, res) => {
       return res.status(200).json({
         success: true,
         data: [],
+        nextCursor: null,
         message: "No more notifications found",
       });
     }
@@ -476,18 +485,17 @@ exports.getUserNotificationHistory = async (req, res) => {
       ...doc.data(),
     }));
 
-    // 👇 Use the last document timestamp as next page cursor
     const lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
-    const nextCursor = lastVisibleDoc?.data()?.timestamp || null;
+    const nextCursor = lastVisibleDoc.data().timestamp;
 
     return res.status(200).json({
       success: true,
       count: notifications.length,
-      nextCursor, // pass this in next request for pagination
+      nextCursor,
       data: notifications,
     });
   } catch (error) {
-    console.error("Error fetching user notification history:", error);
+    console.error("🔥 Error fetching user notification history:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
