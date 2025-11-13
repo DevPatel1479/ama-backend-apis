@@ -21,8 +21,10 @@ async function sendWhatsappOTP(phone, otp) {
   }
 
   let formattedPhone = phone.replace(/\D/g, "");
+  console.log("formatted phone  ... ");
+  console.log(formattedPhone);
   if (formattedPhone.length === 10) {
-    formattedPhone =    formattedPhone;
+    formattedPhone = formattedPhone;
   }
 
   const url = `${baseUrl}/${tenantId}/api/v1/sendTemplateMessages`;
