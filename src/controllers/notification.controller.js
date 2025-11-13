@@ -427,3 +427,71 @@ exports.getNotificationsByRole = async (req, res) => {
     });
   }
 };
+
+exports.getUserNotificationHistory = async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { pageSize = 10, lastTimestamp } = req.query;
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "user_id is required",
+      });
+    }
+
+    const pageLimit = parseInt(pageSize, 10);
+    if (isNaN(pageLimit) || pageLimit <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pageSize parameter",
+      });
+    }
+
+    // 🔥 Reference the user's subcollection
+    let queryRef = db
+      .collection("notification_history")
+      .doc(user_id)
+      .collection("messages")
+      .orderBy("timestamp", "desc")
+      .limit(pageLimit);
+
+    // 👇 For pagination (fetch records after lastTimestamp)
+    if (lastTimestamp) {
+      queryRef = queryRef.startAfter(parseInt(lastTimestamp, 10));
+    }
+
+    const snapshot = await queryRef.get();
+
+    if (snapshot.empty) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: "No more notifications found",
+      });
+    }
+
+    const notifications = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    // 👇 Use the last document timestamp as next page cursor
+    const lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
+    const nextCursor = lastVisibleDoc?.data()?.timestamp || null;
+
+    return res.status(200).json({
+      success: true,
+      count: notifications.length,
+      nextCursor, // pass this in next request for pagination
+      data: notifications,
+    });
+  } catch (error) {
+    console.error("Error fetching user notification history:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
