@@ -153,6 +153,15 @@ exports.sendTopicNotification = async (req, res) => {
       },
     };
 
+    const baseMessageDoc = {
+      n_title,
+      n_body,
+      timestamp: unixTs,
+      sent_by: user_id,
+      topics,
+      send_weekly: !!send_weekly,
+    };
+
     if (send_weekly) {
       const weekTopics = topics; // e.g., ["first_week", "third_week"]
 
@@ -179,6 +188,15 @@ exports.sendTopicNotification = async (req, res) => {
         .doc("client")
         .collection("messages")
         .add(messageDoc);
+
+      await db
+        .collection("notification_history")
+        .doc(user_id)
+        .collection("messages")
+        .add({
+          ...baseMessageDoc,
+          week_notification: true,
+        });
 
       return res.status(200).json({
         success: true,
@@ -216,7 +234,11 @@ exports.sendTopicNotification = async (req, res) => {
           .add(messageDoc)
       );
       await Promise.all(storePromises);
-
+      await db
+        .collection("notification_history")
+        .doc(user_id)
+        .collection("messages")
+        .add(baseMessageDoc);
       return res.status(200).json({
         success: true,
         message: `Notification sent to topic(s): ${topics.join(", ")}`,
