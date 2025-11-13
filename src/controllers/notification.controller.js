@@ -152,7 +152,7 @@ exports.sendTopicNotification = async (req, res) => {
         },
       },
     };
-
+    const unixTs = Math.floor(Date.now() / 1000);
     const baseMessageDoc = {
       n_title,
       n_body,
