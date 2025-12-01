@@ -1,5 +1,5 @@
 const { db, admin } = require("../config/firebase");
-
+const FieldValue = require("firebase-admin").firestore.FieldValue;
 // POST: Add a comment to a question
 // POST: Add a comment to a question
 // POST: Add a comment to a question
@@ -51,7 +51,7 @@ const addComment = async (req, res) => {
     // 🔹 Update question comment count
     const questionRef = db.collection("questions").doc(questionId);
     await questionRef.update({
-      commentsCount: admin.firestore.FieldValue.increment(1),
+      commentsCount: FieldValue.increment(1),
     });
 
     // 🔹 Save a copy in userComments for global tracking
@@ -66,7 +66,6 @@ const addComment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // GET: Fetch comments for a question with pagination
 const getComments = async (req, res) => {
