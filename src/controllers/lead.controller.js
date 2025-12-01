@@ -59,7 +59,7 @@ exports.updateUserData = async (req, res) => {
     // Fetch the user document from 'leads' first
     const leadSnap = await db
       .collection("leads")
-      .where("phone", "==", `91${phone}`)
+      .where("phone", "==", phone)
       .limit(1)
       .get();
 
