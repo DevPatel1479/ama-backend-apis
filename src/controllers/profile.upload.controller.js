@@ -56,7 +56,7 @@ const uploadProfilePhoto = (req, res) => {
         const url = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
 
         // Update Firestore
-        const docName = `${role}_${phone}`;
+        const docName = `91${phone}`;
         const docRef = db.collection("login_users").doc(docName);
         const doc = await docRef.get();
 
@@ -121,7 +121,7 @@ const updateProfilePhoto = (req, res) => {
         // Permanent URL
         const url = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
 
-        const docName = `${role}_${phone}`;
+        const docName = `91${phone}`;
         const docRef = db.collection("login_users").doc(docName);
         const doc = await docRef.get();
 
@@ -153,7 +153,7 @@ const getProfilePhoto = async (req, res) => {
       });
     }
 
-    const docName = `${role}_${phone}`;
+    const docName = `91${phone}`;
     const docRef = db.collection("login_users").doc(docName);
     const doc = await docRef.get();
 

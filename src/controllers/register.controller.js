@@ -2,7 +2,7 @@ const { db } = require("../config/firebase");
 
 exports.registerUser = async (req, res) => {
   const { name, email, phone, state, query, source, role } = req.body;
-  const docId = `${role}_${phone}`;
+  const docId = `91${phone}`;
   const loginUsersRef = db.collection("login_users").doc(docId);
 
   try {
@@ -21,7 +21,7 @@ exports.registerUser = async (req, res) => {
       id: docId,
       name,
       email,
-      phone,
+      phone: `91${phone}`,
       role,
       created_at: timestamp,
       updated_at: timestamp,
@@ -32,7 +32,7 @@ exports.registerUser = async (req, res) => {
     await db.collection("leads").add({
       name,
       email,
-      phone,
+      phone: `91${phone}`,
       state,
       query: query || null,
       source,

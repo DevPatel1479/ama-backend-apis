@@ -4,12 +4,13 @@ const { db } = require("../config/firebase");
 exports.getWeeklyClientCount = async (req, res) => {
   try {
     // Fetch all client documents once
-    const snapshot = await db.collection("login_users").get();
+    const snapshot = await db
+      .collection("login_users")
+      .where("role", "==", "client")
+      .get();
 
     // Filter only client documents
-    const clientDocs = snapshot.docs.filter((doc) =>
-      doc.id.startsWith("client_")
-    );
+    const clientDocs = snapshot.docs;
 
     // Function to count clients for a given week number
     const countForWeek = (weekNum) => {

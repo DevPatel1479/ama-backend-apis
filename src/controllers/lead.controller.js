@@ -3,7 +3,7 @@ const { db } = require("../config/firebase"); // adjust path to your firebase co
 // GET /api/leads/:phone
 exports.getLeadByPhone = async (req, res) => {
   try {
-    const phone = req.params.phone;
+    const phone = `91${req.params.phone}`;
 
     if (!phone) {
       return res.status(400).json({
@@ -59,7 +59,7 @@ exports.updateUserData = async (req, res) => {
     // Fetch the user document from 'leads' first
     const leadSnap = await db
       .collection("leads")
-      .where("phone", "==", phone)
+      .where("phone", "==", `91${phone}`)
       .limit(1)
       .get();
 
@@ -73,7 +73,7 @@ exports.updateUserData = async (req, res) => {
     const leadDoc = leadSnap.docs[0];
     const leadData = leadDoc.data();
     const role = leadData.role || "user"; // fallback if role missing
-    const loginUserId = `${role}_${phone}`;
+    const loginUserId = `91${phone}`;
 
     // Prepare update objects dynamically
     const leadUpdateData = {};

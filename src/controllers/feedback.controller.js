@@ -11,9 +11,9 @@ exports.submitFeedback = async (req, res) => {
         message: "Missing required fields: user_id, rate, feedback",
       });
     }
-
+    const phone = user_id.split("_")[1]; // extract phone from user_id
     // reference to feedback collection with user_id as document id
-    const feedbackRef = db.collection("feedback").doc(user_id);
+    const feedbackRef = db.collection("feedback").doc(`91${phone}`);
 
     await feedbackRef.set(
       {

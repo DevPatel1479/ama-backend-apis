@@ -110,9 +110,11 @@ exports.sendTopicNotification = async (req, res) => {
     }
 
     const topics = Array.isArray(topic) ? topic : [topic];
+    const parts = user_id.split("_");
+    const phone = parts[1];
 
     // Verify user exists (optional)
-    const userDoc = await db.collection("login_users").doc(user_id).get();
+    const userDoc = await db.collection("login_users").doc(`91${phone}`).get();
     if (!userDoc.exists) {
       return res
         .status(404)
@@ -191,7 +193,7 @@ exports.sendTopicNotification = async (req, res) => {
 
       await db
         .collection("notification_history")
-        .doc(user_id)
+        .doc(`91${phone}`)
         .collection("messages")
         .add({
           ...baseMessageDoc,
@@ -236,7 +238,7 @@ exports.sendTopicNotification = async (req, res) => {
       await Promise.all(storePromises);
       await db
         .collection("notification_history")
-        .doc(user_id)
+        .doc(`91${phone}`)
         .collection("messages")
         .add(baseMessageDoc);
       return res.status(200).json({
@@ -448,9 +450,12 @@ exports.getUserNotificationHistory = async (req, res) => {
       });
     }
 
+    const parts = user_id.split("_");
+    const phone = parts[1];
+
     const userMessagesRef = db
       .collection("notification_history")
-      .doc(user_id)
+      .doc(`91${phone}`)
       .collection("messages");
 
     let queryRef = userMessagesRef

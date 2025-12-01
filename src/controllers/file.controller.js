@@ -1,5 +1,5 @@
-const { db, bucket } = require('../config/firebase');
-const path = require('path');
+const { db, bucket } = require("../config/firebase");
+const path = require("path");
 
 exports.uploadFile = async (req, res) => {
   try {
@@ -7,14 +7,18 @@ exports.uploadFile = async (req, res) => {
     const file = req.file;
 
     if (!phone || !role || !file) {
-      return res.status(400).json({ success: false, message: 'Missing phone, role or file.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing phone, role or file." });
     }
 
-    const userDocId = `${role}_${phone}`;
-    const userDoc = await db.collection('login_users').doc(userDocId).get();
+    const userDocId = `91${phone}`;
+    const userDoc = await db.collection("login_users").doc(userDocId).get();
 
     if (!userDoc.exists) {
-      return res.status(403).json({ success: false, message: 'User not authorized.' });
+      return res
+        .status(403)
+        .json({ success: false, message: "User not authorized." });
     }
 
     const fileName = `${Date.now()}_${file.originalname}`;
@@ -26,12 +30,12 @@ exports.uploadFile = async (req, res) => {
       },
     });
 
-    stream.on('error', (err) => {
-      console.error('🔥 Firebase Storage upload error:', err);
-      return res.status(500).json({ success: false, message: 'Upload error.' });
+    stream.on("error", (err) => {
+      console.error("🔥 Firebase Storage upload error:", err);
+      return res.status(500).json({ success: false, message: "Upload error." });
     });
 
-    stream.on('finish', async () => {
+    stream.on("finish", async () => {
       // Make public and get URL
       await fileUpload.makePublic();
       const publicUrl = `https://storage.googleapis.com/${bucket.name}/questions/${fileName}`;
@@ -42,6 +46,6 @@ exports.uploadFile = async (req, res) => {
     stream.end(file.buffer);
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ success: false, message: 'Server error.' });
+    return res.status(500).json({ success: false, message: "Server error." });
   }
 };

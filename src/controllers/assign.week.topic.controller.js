@@ -3,7 +3,18 @@ const { db } = require("../config/firebase");
 
 exports.assignWeekTopicToClients = async (req, res) => {
   try {
-    const snapshot = await db.collection("login_users").get();
+    const snapshot = await db
+      .collection("login_users")
+      .where("role", "==", "client")
+      .get();
+
+    if (snapshot.empty) {
+      return res.status(200).json({
+        success: true,
+        message: "No client documents found",
+        total_updated: 0,
+      });
+    }
 
     let updateCount = 0;
 
@@ -11,7 +22,7 @@ exports.assignWeekTopicToClients = async (req, res) => {
 
     snapshot.forEach((doc) => {
       const docId = doc.id;
-      if (!docId.startsWith("client_")) return; // only clients
+      // if (!docId.startsWith("client_")) return; // only clients
 
       const data = doc.data();
       const startDateStr = data.start_date;

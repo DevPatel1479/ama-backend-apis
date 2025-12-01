@@ -18,8 +18,8 @@ exports.fileDispute = async (req, res) => {
           "Missing required fields: user_id, selected_service, query, name",
       });
     }
-
-    const disputesRef = db.collection("file_disputes").doc(user_id);
+    const phone = user_id.split("_")[1];
+    const disputesRef = db.collection("file_disputes").doc(`91${phone}`);
 
     // ✅ Create a new dispute object
     const newDispute = {
@@ -39,7 +39,7 @@ exports.fileDispute = async (req, res) => {
         transaction.update(disputesRef, { disputes: existingDisputes });
       } else {
         transaction.set(disputesRef, {
-          user_id,
+          phone: `91${phone}`,
           disputes: [newDispute],
         });
       }

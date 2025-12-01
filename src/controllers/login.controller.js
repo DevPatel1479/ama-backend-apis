@@ -10,7 +10,7 @@ exports.loginUser = async (req, res) => {
 
     const snapshot = await db
       .collection("login_users")
-      .where("phone", "==", phone)
+      .where("phone", "==", `91${phone}`)
       .limit(1)
       .get();
 

@@ -1,6 +1,7 @@
-const { getFirestore } = require("firebase-admin/firestore");
+// const { getFirestore } = require("firebase-admin/firestore");
+const { db } = require("../config/firebase");
 
-const db = getFirestore();
+// const db = getFirestore();
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -61,7 +62,7 @@ async function sendWhatsappOTP(phone, otp) {
 }
 
 async function sendOTP(phone, role) {
-  const docId = `${role}_${phone}`;
+  const docId = `91${phone}`;
   const userRef = db.collection("login_users").doc(docId);
   const userSnap = await userRef.get();
 
@@ -77,7 +78,7 @@ async function sendOTP(phone, role) {
 }
 
 async function verifyOTP(phone, role, inputOtp) {
-  const docId = `${role}_${phone}`;
+  const docId = `91${phone}`;
   const userRef = db.collection("login_users").doc(docId);
   const userSnap = await userRef.get();
 

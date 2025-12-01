@@ -95,7 +95,7 @@ exports.resolveQuery = async (req, res) => {
       resolved_at: timestamp,
       resolved_by: {
         role: operatorRole,
-        phone: operatorPhone,
+        phone:  operatorPhone ? `91${operatorPhone}` : null,
         name: operatorName,
       },
     };

@@ -10,9 +10,11 @@ exports.sendNotificationToAllAdvocates = async (req, res) => {
         message: "user_id, topic, n_title and n_body are required",
       });
     }
-
+    const parts = user_id.split("_");
+    const phone = parts[1];
+    const fullPhone = `91${phone}`;
     // Verify user exists (optional)
-    const userDoc = await db.collection("login_users").doc(user_id).get();
+    const userDoc = await db.collection("login_users").doc(fullPhone).get();
     if (!userDoc.exists) {
       return res
         .status(404)

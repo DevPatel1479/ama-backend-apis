@@ -1,4 +1,5 @@
 const { db, admin } = require("../config/firebase");
+const { crmDb } = require("../config/crmFirebase");
 const FieldValue = admin.firestore.FieldValue;
 
 // POST /raise-query
@@ -14,24 +15,28 @@ exports.raiseQuery = async (req, res) => {
     }
 
     // Document ID format for app_clients
-    const clientDocId = `ama_${role}_${phone}`;
+    // const clientDocId = `ama_${role}_${phone}`;
 
     // Fetch alloc_adv and alloc_adv_secondary
-    const clientDocRef = db.collection("app_clients").doc(clientDocId);
-    const clientSnapshot = await clientDocRef.get();
+    const clientsRef = crmDb.collection("clients");
+    const clientQuery = await clientsRef
+      .where("phone", "==", phone) // <-- Filter by phone
+      .limit(1)
+      .get();
 
-    if (!clientSnapshot.exists) {
+    if (clientQuery.empty) {
       return res.status(404).json({
         success: false,
-        message: `Client document not found for ID: ${clientDocId}`,
+        message: `Client not found with phone: ${phone}`,
       });
     }
 
-    const clientData = clientSnapshot.data();
+    const clientDoc = clientQuery.docs[0];
+    const clientData = clientDoc.data();
     const { alloc_adv, alloc_adv_secondary } = clientData;
 
     // Now proceed with adding query
-    const parentDocId = `${role}_${phone}`;
+    const parentDocId = `91${phone}`;
     const timestamp = Math.floor(Date.now() / 1000); // unix timestamp
 
     const userDocRef = db.collection("queries").doc(parentDocId);
@@ -41,7 +46,7 @@ exports.raiseQuery = async (req, res) => {
     const queryData = {
       queryId: newQueryRef.id, // generated id
       role,
-      phone,
+      phone: `91${phone}`,
       parentDocId,
       query,
       posted_by: name,
@@ -167,7 +172,7 @@ exports.getQueries = async (req, res) => {
 
     // Per-user userQueries subcollection
     if (role && phone) {
-      const docId = `${role}_${phone}`;
+      const docId = `91${phone}`;
       queryRef = db.collection("queries").doc(docId).collection("userQueries");
 
       if (status) {
