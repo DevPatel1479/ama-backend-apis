@@ -27,6 +27,7 @@ exports.registerUser = async (req, res) => {
       updated_at: timestamp,
       status: "active",
       start_date,
+      topic: "all_users",
     });
 
     await db.collection("leads").add({
