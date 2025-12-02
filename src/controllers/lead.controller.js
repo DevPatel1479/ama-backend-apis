@@ -73,7 +73,7 @@ exports.updateUserData = async (req, res) => {
     const leadDoc = leadSnap.docs[0];
     const leadData = leadDoc.data();
     const role = leadData.role || "user"; // fallback if role missing
-    const loginUserId = `91${phone}`;
+    const loginUserId = `${phone}`;
 
     // Prepare update objects dynamically
     const leadUpdateData = {};
