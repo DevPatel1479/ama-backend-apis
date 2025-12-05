@@ -23,14 +23,18 @@ exports.sendNotificationToAllAdvocates = async (req, res) => {
 
     // Prepare notification payload
     const messagePayload = {
+      topic: "all_advocates",
+      notification: {
+        title: n_title,
+        body: n_body, // <-- MULTILINE TEXT WORKS FINE HERE
+      },
       data: {
         title: n_title,
         body: n_body,
-        type: "advocate_notification", // optional tag
+        type: "advocate_notification",
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
       },
-      topic: "all_advocates",
     };
-
     const sendPromises = topics.map(async (t) => {
       const msg = { ...messagePayload, topic: t };
       return admin.messaging().send(msg);
