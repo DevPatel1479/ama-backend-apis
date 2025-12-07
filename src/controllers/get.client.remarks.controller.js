@@ -15,26 +15,25 @@ exports.getClientRemarks = async (req, res) => {
       });
     }
 
-    // 📌 Firestore Query (Assuming "clients" collection)
+    // 📌 Query Firestore: clients collection
     const snapshot = await crmDb
       .collection("clients")
       .where("phone", "==", `91${phone}`)
       .get();
 
-    // 🔴 No matching client found
+    // 🔴 No match
     if (snapshot.empty) {
       return res.status(200).json({
         success: true,
         message: "No records found for this phone number.",
-        data: [], // always return empty array
+        data: [],
       });
     }
 
-    // ✔ Firestore can return multiple matches (rare but possible)
     const clientDoc = snapshot.docs[0].data();
-
     const statusArray = clientDoc.client_app_status || [];
 
+    // 🔴 Validate structure
     if (!Array.isArray(statusArray)) {
       return res.status(200).json({
         success: true,
@@ -43,15 +42,11 @@ exports.getClientRemarks = async (req, res) => {
       });
     }
 
-    // 🔄 Sort remarks by most recent (createdAt DESC)
-    const sorted = [...statusArray].sort((a, b) => {
-      const t1 = a.createdAt || 0;
-      const t2 = b.createdAt || 0;
-      return t2 - t1; // newest first
-    });
+    // 🔄 FASTEST → reverse the array (latest appended at bottom)
+    const reversed = [...statusArray].reverse(); // O(n)
 
-    // 🟢 Format clean & Flutter-friendly data
-    const responseData = sorted.map((item, index) => ({
+    // 🟢 Prepare Flutter-friendly format
+    const responseData = reversed.map((item, index) => ({
       index: item.index ?? index.toString(),
       remarks: item.remarks ?? "",
       createdAt: item.createdAt ?? 0,
