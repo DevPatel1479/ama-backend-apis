@@ -1,15 +1,23 @@
-const {db} = require('../config/firebase');
+const { db } = require("../config/firebase");
 
-const collectionName = "login_users"; 
+const collectionName = "login_users";
+
+function extractPhone(user_id) {
+  return user_id.split("_").pop();
+}
+
 exports.storeFcmToken = async (req, res) => {
   try {
     const { user_id, fcm_token } = req.body;
 
     if (!user_id || !fcm_token) {
-      return res.status(400).json({ error: "user_id and fcm_token are required" });
+      return res
+        .status(400)
+        .json({ error: "user_id and fcm_token are required" });
     }
+    const phone = `91${extractPhone(user_id)}`;
 
-    const userRef = db.collection(collectionName).doc(user_id);
+    const userRef = db.collection(collectionName).doc(phone);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
@@ -31,10 +39,14 @@ exports.updateFcmToken = async (req, res) => {
     const { user_id, fcm_token } = req.body;
 
     if (!user_id || !fcm_token) {
-      return res.status(400).json({ error: "user_id and fcm_token are required" });
+      return res
+        .status(400)
+        .json({ error: "user_id and fcm_token are required" });
     }
 
-    const userRef = db.collection(collectionName).doc(user_id);
+    const phone = `91${extractPhone(user_id)}`;
+
+    const userRef = db.collection(collectionName).doc(phone);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
