@@ -112,6 +112,13 @@ exports.resolveQuery = async (req, res) => {
 
     await batch.commit();
 
+    // Get query content for notification preview
+    const rawQueryText = userQueryData.query || userQueryData.userQuery || "";
+    const trimmedQuery =
+      rawQueryText.length > 40
+        ? rawQueryText.substring(0, 40) + "..."
+        : rawQueryText;
+
     const loginUsersRef = db.collection("login_users").doc(parentDocId);
     const loginUserSnap = await loginUsersRef.get();
 
@@ -122,27 +129,35 @@ exports.resolveQuery = async (req, res) => {
       if (fcmToken) {
         const msg = {
           token: fcmToken,
+
+          // ------------------ NOTIFICATION UI ------------------
           notification: {
-            title: "Your Query Has Been Resolved",
-            body: `Your query (ID: ${queryId}) has been resolved. Please check the app for details.`,
+            title: "Client Query Update",
+            body: `Query resolved: ${trimmedQuery}`,
           },
+
+          // Android settings
           android: {
             priority: "high",
             notification: {
               channel_id: "high_importance_channel",
             },
           },
+
+          // iOS settings
           apns: {
             payload: {
               aps: {
                 sound: "default",
                 alert: {
-                  title: "Your Query Has Been Resolved",
-                  body: `Your query (ID: ${queryId}) has been resolved.`,
+                  title: "Client Query Update",
+                  body: `Query resolved: ${trimmedQuery}`,
                 },
               },
             },
           },
+
+          // Extra data for app to open correct screen
           data: {
             type: "QUERY_RESOLVED",
             queryId: queryId,
