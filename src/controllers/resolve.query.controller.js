@@ -95,7 +95,7 @@ exports.resolveQuery = async (req, res) => {
       resolved_at: timestamp,
       resolved_by: {
         role: operatorRole,
-        phone:  operatorPhone ? `91${operatorPhone}` : null,
+        phone: operatorPhone ? `91${operatorPhone}` : null,
         name: operatorName,
       },
     };
@@ -111,6 +111,54 @@ exports.resolveQuery = async (req, res) => {
     batch.update(userQueryRef, updatePayload);
 
     await batch.commit();
+
+    const loginUsersRef = db.collection("login_users").doc(parentDocId);
+    const loginUserSnap = await loginUsersRef.get();
+
+    if (loginUserSnap.exists) {
+      const userData = loginUserSnap.data();
+      const fcmToken = userData.fcm_token;
+
+      if (fcmToken) {
+        const msg = {
+          token: fcmToken,
+          notification: {
+            title: "Your Query Has Been Resolved",
+            body: `Your query (ID: ${queryId}) has been resolved. Please check the app for details.`,
+          },
+          android: {
+            priority: "high",
+            notification: {
+              channel_id: "high_importance_channel",
+            },
+          },
+          apns: {
+            payload: {
+              aps: {
+                sound: "default",
+                alert: {
+                  title: "Your Query Has Been Resolved",
+                  body: `Your query (ID: ${queryId}) has been resolved.`,
+                },
+              },
+            },
+          },
+          data: {
+            type: "QUERY_RESOLVED",
+            queryId: queryId,
+          },
+        };
+
+        try {
+          await admin.messaging().send(msg);
+          console.log("📩 FCM Notification Sent");
+        } catch (fcmErr) {
+          console.error("FCM sending error:", fcmErr);
+        }
+      } else {
+        console.log("⚠ No FCM token found for user:", parentDocId);
+      }
+    }
 
     // 5) Return success with updated fields (merge with previous data for clarity)
     return res.status(200).json({
