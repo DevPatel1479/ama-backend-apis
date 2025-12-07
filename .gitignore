@@ -12,4 +12,5 @@ coverage/
 .env
 firebaseServiceAccount.json
 crmFirebaseServiceAccount.json
+amaFirebaseServiceAccount.json
 
