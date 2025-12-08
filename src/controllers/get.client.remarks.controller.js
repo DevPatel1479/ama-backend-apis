@@ -18,7 +18,7 @@ exports.getClientRemarks = async (req, res) => {
     // 📌 Query Firestore: clients collection
     const snapshot = await crmDb
       .collection("clients")
-      .where("phone", "==", `91${phone}`)
+      .where("phone", "==", phone)
       .get();
 
     // 🔴 No match
