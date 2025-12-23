@@ -22,14 +22,14 @@ async function sendWhatsappOTP(phone, otp) {
   }
 
   let formattedPhone = phone.replace(/\D/g, "");
-  console.log("formatted phone  ... ");
-  console.log(formattedPhone);
+  // console.log("formatted phone  ... ");
+  // console.log(formattedPhone);
   if (formattedPhone.length === 10) {
-    formattedPhone = formattedPhone;
+    formattedPhone = `91${formattedPhone}`;
   }
 
   const url = `${baseUrl}/${tenantId}/api/v1/sendTemplateMessages`;
-
+  // console.log(`formated final phone with country code ${formattedPhone}`);
   const requestBody = {
     template_name: templateName,
     broadcast_name: `OTP_${Date.now()}`,
