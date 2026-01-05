@@ -61,3 +61,59 @@ exports.updateFcmToken = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+exports.storeFcmTokenV2 = async (req, res) => {
+  try {
+    const { user_id, fcm_token } = req.body;
+
+    if (!user_id || !fcm_token) {
+      return res
+        .status(400)
+        .json({ error: "user_id and fcm_token are required" });
+    }
+    const phone = `${extractPhone(user_id)}`;
+
+    const userRef = db.collection(collectionName).doc(phone);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    await userRef.update({ fcm_token });
+
+    return res.status(200).json({ message: "FCM token stored successfully" });
+  } catch (error) {
+    console.error("Error storing FCM token:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Update FCM token
+exports.updateFcmTokenV2 = async (req, res) => {
+  try {
+    const { user_id, fcm_token } = req.body;
+
+    if (!user_id || !fcm_token) {
+      return res
+        .status(400)
+        .json({ error: "user_id and fcm_token are required" });
+    }
+
+    const phone = `${extractPhone(user_id)}`;
+
+    const userRef = db.collection(collectionName).doc(phone);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    await userRef.update({ fcm_token });
+
+    return res.status(200).json({ message: "FCM token updated successfully" });
+  } catch (error) {
+    console.error("Error updating FCM token:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
