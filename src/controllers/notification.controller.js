@@ -633,7 +633,7 @@ exports.sendTopicNotificationV2 = async (req, res) => {
     const phone = parts[1];
 
     // Verify user exists (optional)
-    const userDoc = await db.collection("login_users").doc(`${phone}`).get();
+    const userDoc = await db.collection("login_users").doc(`91${phone}`).get();
     if (!userDoc.exists) {
       return res
         .status(404)
@@ -712,7 +712,7 @@ exports.sendTopicNotificationV2 = async (req, res) => {
 
       await db
         .collection("notification_history")
-        .doc(`${phone}`)
+        .doc(`91${phone}`)
         .collection("messages")
         .add({
           ...baseMessageDoc,
@@ -757,7 +757,7 @@ exports.sendTopicNotificationV2 = async (req, res) => {
       await Promise.all(storePromises);
       await db
         .collection("notification_history")
-        .doc(`${phone}`)
+        .doc(`91${phone}`)
         .collection("messages")
         .add(baseMessageDoc);
       return res.status(200).json({
