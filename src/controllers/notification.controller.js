@@ -509,80 +509,80 @@ exports.getUserNotificationHistory = async (req, res) => {
   }
 };
 
-exports.getUnreadNotifications = async (req, res) => {
+exports.getLastOpenedNotificationTime = async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone)
-      return res
-        .status(400)
-        .json({ success: false, message: "Phone required" });
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone is required",
+      });
+    }
 
     const documentId = `91${phone}`;
     const userRef = db.collection("login_users").doc(documentId);
-    const userSnap = await userRef.get();
+    const snap = await userRef.get();
 
-    if (!userSnap.exists)
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-        unreadNotifications: [],
+    if (!snap.exists) {
+      return res.status(200).json({
+        success: true,
+        lastOpenedNotificationTime: null, // first-time user
       });
+    }
 
-    const userData = userSnap.data();
-    const unread = userData.unreadNotifications ?? [];
+    const data = snap.data();
 
-    return res.status(200).json({ success: true, unreadNotifications: unread });
+    return res.status(200).json({
+      success: true,
+      lastOpenedNotificationTime: data.lastOpenedNotificationTime ?? null,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch unread notifications",
-      error: error.message,
+      message: "Failed to fetch last opened notification time",
     });
   }
 };
 
-exports.markNotificationsSeen = async (req, res) => {
+exports.updateLastOpenedNotificationTime = async (req, res) => {
   try {
-    const { phone, seenNotificationIds } = req.body;
-    if (!phone || !seenNotificationIds) {
+    const { phone } = req.body;
+
+    if (!phone) {
       return res.status(400).json({
         success: false,
-        message: "phone and seenNotificationIds required",
+        message: "Phone is required",
       });
     }
 
     const documentId = `91${phone}`;
     const userRef = db.collection("login_users").doc(documentId);
 
-    const userSnap = await userRef.get();
-    if (!userSnap.exists)
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-
-    const userData = userSnap.data();
-    let unread = userData.unreadNotifications ?? [];
-
-    // ✅ Remove the seen notifications
-    unread = unread.filter((id) => !seenNotificationIds.includes(id));
-
-    await userRef.update({ unreadNotifications: unread });
+    await userRef.set(
+      {
+        lastOpenedNotificationTime:
+          admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     return res.status(200).json({
       success: true,
-      updated: true,
-      message: "Notifications marked seen",
+      message: "Last opened notification time updated",
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to mark notifications seen",
-      error: error.message,
+      message: "Failed to update last opened notification time",
     });
   }
 };
+
+
+
 exports.sendTopicNotificationV2 = async (req, res) => {
   try {
     const { user_id, topic, n_title, n_body, send_weekly } = req.body;

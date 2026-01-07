@@ -9,11 +9,13 @@ const {
 
   sendTopicNotificationV2,
   getUserNotificationHistoryV2,
+  getLastOpenedNotificationTime,
+  updateLastOpenedNotificationTime,
 } = require("../controllers/notification.controller");
 
 router.post("/send-topic-notification", sendTopicNotification);
-router.post("/last-seen", getUnreadNotifications);
-router.post("/mark-seen", markNotificationsSeen);
+router.post("/last-seen", getLastOpenedNotificationTime);
+router.post("/mark-seen", updateLastOpenedNotificationTime);
 router.get("/get-notification/:role", getNotificationsByRole);
 router.get("/history/:user_id", getUserNotificationHistory);
 
