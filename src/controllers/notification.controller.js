@@ -509,114 +509,80 @@ exports.getUserNotificationHistory = async (req, res) => {
   }
 };
 
-exports.getLastSeenNotificationTimestamp = async (req, res) => {
+exports.getUnreadNotifications = async (req, res) => {
   try {
     const { phone } = req.body;
+    if (!phone)
+      return res
+        .status(400)
+        .json({ success: false, message: "Phone required" });
 
-    if (!phone) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone number is required",
-      });
-    }
-
-    // 🔹 Append country code (India)
     const documentId = `91${phone}`;
-
     const userRef = db.collection("login_users").doc(documentId);
     const userSnap = await userRef.get();
 
-    if (!userSnap.exists) {
+    if (!userSnap.exists)
       return res.status(404).json({
         success: false,
         message: "User not found",
-        lastNotificationTimeStamp: null,
+        unreadNotifications: [],
       });
-    }
 
     const userData = userSnap.data();
+    const unread = userData.unreadNotifications ?? [];
 
-    const lastSeenTs = userData.lastNotificationTimeStamp ?? null;
-
-    return res.status(200).json({
-      success: true,
-      lastNotificationTimeStamp: lastSeenTs,
-    });
+    return res.status(200).json({ success: true, unreadNotifications: unread });
   } catch (error) {
-    console.error("Error fetching last seen notification timestamp:", error);
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch last seen notification timestamp",
+      message: "Failed to fetch unread notifications",
       error: error.message,
     });
   }
 };
 
-exports.storeLastSeenNotificationTimestamp = async (req, res) => {
+exports.markNotificationsSeen = async (req, res) => {
   try {
-    const { phone, lastSeenTimestamp, storedLastSeenTimestamp } = req.body;
-
-    // 🔴 Basic validation
-    if (!phone || !lastSeenTimestamp) {
+    const { phone, seenNotificationIds } = req.body;
+    if (!phone || !seenNotificationIds) {
       return res.status(400).json({
         success: false,
-        message: "phone and lastSeenTimestamp are required",
+        message: "phone and seenNotificationIds required",
       });
     }
 
-    // 🔹 Build document ID
     const documentId = `91${phone}`;
-
     const userRef = db.collection("login_users").doc(documentId);
 
-    // 🔹 Case 1: No stored timestamp from Flutter
-    if (
-      storedLastSeenTimestamp === null ||
-      storedLastSeenTimestamp === undefined
-    ) {
-      await userRef.set(
-        {
-          lastNotificationTimeStamp: lastSeenTimestamp,
-        },
-        { merge: true }
-      );
+    const userSnap = await userRef.get();
+    if (!userSnap.exists)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
-      return res.status(200).json({
-        success: true,
-        updated: true,
-        message: "Last seen timestamp stored (initial)",
-      });
-    }
+    const userData = userSnap.data();
+    let unread = userData.unreadNotifications ?? [];
 
-    // 🔹 Case 2: Timestamp exists → compare
-    if (lastSeenTimestamp === storedLastSeenTimestamp) {
-      return res.status(200).json({
-        success: true,
-        updated: false,
-        message: "Timestamp already up-to-date",
-      });
-    }
+    // ✅ Remove the seen notifications
+    unread = unread.filter((id) => !seenNotificationIds.includes(id));
 
-    // 🔹 Case 3: Timestamp changed → update
-    await userRef.update({
-      lastNotificationTimeStamp: lastSeenTimestamp,
-    });
+    await userRef.update({ unreadNotifications: unread });
 
     return res.status(200).json({
       success: true,
       updated: true,
-      message: "Last seen timestamp updated",
+      message: "Notifications marked seen",
     });
   } catch (error) {
-    console.error("Error storing last seen notification timestamp:", error);
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to store last seen notification timestamp",
+      message: "Failed to mark notifications seen",
       error: error.message,
     });
   }
 };
-
 exports.sendTopicNotificationV2 = async (req, res) => {
   try {
     const { user_id, topic, n_title, n_body, send_weekly } = req.body;
