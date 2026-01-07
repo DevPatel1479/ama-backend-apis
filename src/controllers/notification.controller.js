@@ -527,7 +527,7 @@ exports.getLastOpenedNotificationTime = async (req, res) => {
     if (!snap.exists) {
       return res.status(200).json({
         success: true,
-        lastOpenedNotificationTime: null, // first-time user
+        lastOpenedNotificationTime: null,
       });
     }
 
@@ -546,6 +546,7 @@ exports.getLastOpenedNotificationTime = async (req, res) => {
   }
 };
 
+
 exports.updateLastOpenedNotificationTime = async (req, res) => {
   try {
     const { phone } = req.body;
@@ -560,17 +561,19 @@ exports.updateLastOpenedNotificationTime = async (req, res) => {
     const documentId = `91${phone}`;
     const userRef = db.collection("login_users").doc(documentId);
 
+    // ✅ UNIX timestamp (seconds)
+    const unixTs = Math.floor(Date.now() / 1000);
+
     await userRef.set(
       {
-        lastOpenedNotificationTime:
-          admin.firestore.FieldValue.serverTimestamp(),
+        lastOpenedNotificationTime: unixTs,
       },
       { merge: true }
     );
 
     return res.status(200).json({
       success: true,
-      message: "Last opened notification time updated",
+      lastOpenedNotificationTime: unixTs,
     });
   } catch (error) {
     console.error(error);
@@ -580,8 +583,6 @@ exports.updateLastOpenedNotificationTime = async (req, res) => {
     });
   }
 };
-
-
 
 exports.sendTopicNotificationV2 = async (req, res) => {
   try {
