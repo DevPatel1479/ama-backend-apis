@@ -4,8 +4,6 @@ const {
   sendTopicNotification,
   getNotificationsByRole,
   getUserNotificationHistory,
-  getUnreadNotifications,
-  markNotificationsSeen,
 
   sendTopicNotificationV2,
   getUserNotificationHistoryV2,
