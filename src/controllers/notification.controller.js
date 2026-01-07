@@ -609,7 +609,8 @@ exports.adminGetLastOpenedNotificationTime = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      adminLastOpenedNotificationTime: data.lastOpenedNotificationTime ?? null,
+      adminLastOpenedNotificationTime:
+        data.adminLastOpenedNotificationTime ?? null,
     });
   } catch (error) {
     console.error(error);
