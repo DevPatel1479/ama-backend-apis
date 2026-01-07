@@ -509,6 +509,114 @@ exports.getUserNotificationHistory = async (req, res) => {
   }
 };
 
+exports.getLastSeenNotificationTimestamp = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number is required",
+      });
+    }
+
+    // 🔹 Append country code (India)
+    const documentId = `91${phone}`;
+
+    const userRef = db.collection("login_users").doc(documentId);
+    const userSnap = await userRef.get();
+
+    if (!userSnap.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+        lastNotificationTimeStamp: null,
+      });
+    }
+
+    const userData = userSnap.data();
+
+    const lastSeenTs = userData.lastNotificationTimeStamp ?? null;
+
+    return res.status(200).json({
+      success: true,
+      lastNotificationTimeStamp: lastSeenTs,
+    });
+  } catch (error) {
+    console.error("Error fetching last seen notification timestamp:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch last seen notification timestamp",
+      error: error.message,
+    });
+  }
+};
+
+exports.storeLastSeenNotificationTimestamp = async (req, res) => {
+  try {
+    const { phone, lastSeenTimestamp, storedLastSeenTimestamp } = req.body;
+
+    // 🔴 Basic validation
+    if (!phone || !lastSeenTimestamp) {
+      return res.status(400).json({
+        success: false,
+        message: "phone and lastSeenTimestamp are required",
+      });
+    }
+
+    // 🔹 Build document ID
+    const documentId = `91${phone}`;
+
+    const userRef = db.collection("login_users").doc(documentId);
+
+    // 🔹 Case 1: No stored timestamp from Flutter
+    if (
+      storedLastSeenTimestamp === null ||
+      storedLastSeenTimestamp === undefined
+    ) {
+      await userRef.set(
+        {
+          lastNotificationTimeStamp: lastSeenTimestamp,
+        },
+        { merge: true }
+      );
+
+      return res.status(200).json({
+        success: true,
+        updated: true,
+        message: "Last seen timestamp stored (initial)",
+      });
+    }
+
+    // 🔹 Case 2: Timestamp exists → compare
+    if (lastSeenTimestamp === storedLastSeenTimestamp) {
+      return res.status(200).json({
+        success: true,
+        updated: false,
+        message: "Timestamp already up-to-date",
+      });
+    }
+
+    // 🔹 Case 3: Timestamp changed → update
+    await userRef.update({
+      lastNotificationTimeStamp: lastSeenTimestamp,
+    });
+
+    return res.status(200).json({
+      success: true,
+      updated: true,
+      message: "Last seen timestamp updated",
+    });
+  } catch (error) {
+    console.error("Error storing last seen notification timestamp:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to store last seen notification timestamp",
+      error: error.message,
+    });
+  }
+};
+
 exports.sendTopicNotificationV2 = async (req, res) => {
   try {
     const { user_id, topic, n_title, n_body, send_weekly } = req.body;
