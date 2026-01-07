@@ -692,7 +692,7 @@ exports.sendTopicNotificationV2 = async (req, res) => {
         return admin.messaging().send(msg); // only 1 send per topic
       });
 
-      await Promise.all(sendPromises);
+      // await Promise.all(sendPromises);
 
       // Store notification under 'client' role with week_notification: true
       const unixTs = Math.floor(Date.now() / 1000);
@@ -731,7 +731,7 @@ exports.sendTopicNotificationV2 = async (req, res) => {
         const msg = { ...messagePayload, topic: t };
         return admin.messaging().send(msg);
       });
-      await Promise.all(sendPromises);
+      // await Promise.all(sendPromises);
 
       const unixTs = Math.floor(Date.now() / 1000);
       const messageDoc = {
