@@ -546,7 +546,6 @@ exports.getLastOpenedNotificationTime = async (req, res) => {
   }
 };
 
-
 exports.updateLastOpenedNotificationTime = async (req, res) => {
   try {
     const { phone } = req.body;
@@ -574,6 +573,80 @@ exports.updateLastOpenedNotificationTime = async (req, res) => {
     return res.status(200).json({
       success: true,
       lastOpenedNotificationTime: unixTs,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update last opened notification time",
+    });
+  }
+};
+
+exports.adminGetLastOpenedNotificationTime = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone is required",
+      });
+    }
+
+    const documentId = `91${phone}`;
+    const userRef = db.collection("login_users").doc(documentId);
+    const snap = await userRef.get();
+
+    if (!snap.exists) {
+      return res.status(200).json({
+        success: true,
+        adminLastOpenedNotificationTime: null,
+      });
+    }
+
+    const data = snap.data();
+
+    return res.status(200).json({
+      success: true,
+      adminLastOpenedNotificationTime: data.lastOpenedNotificationTime ?? null,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch last opened notification time",
+    });
+  }
+};
+
+exports.adminUpdateLastOpenedNotificationTime = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone is required",
+      });
+    }
+
+    const documentId = `91${phone}`;
+    const userRef = db.collection("login_users").doc(documentId);
+
+    // ✅ UNIX timestamp (seconds)
+    const unixTs = Math.floor(Date.now() / 1000);
+
+    await userRef.set(
+      {
+        adminLastOpenedNotificationTime: unixTs,
+      },
+      { merge: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      adminLastOpenedNotificationTime: unixTs,
     });
   } catch (error) {
     console.error(error);
