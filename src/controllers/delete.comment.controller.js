@@ -1,4 +1,5 @@
-const { db, admin } = require("../config/firebase");
+const { db } = require("../config/firebase");
+const admin = require("firebase-admin"); // ✅ add this line
 
 /**
  * DELETE COMMENT
@@ -15,20 +16,27 @@ exports.deleteComment = async (req, res) => {
       });
     }
 
+    if (!questionId || !commentId) {
+      return res.status(400).json({
+        success: false,
+        message: "questionId and commentId are required",
+      });
+    }
+
     const questionRef = db.collection("questions").doc(questionId);
     const commentRef = questionRef.collection("comments").doc(commentId);
 
     await db.runTransaction(async (tx) => {
-      const commentSnap = await tx.get(commentRef);
+      const snap = await tx.get(commentRef);
 
-      if (!commentSnap.exists) {
+      if (!snap.exists) {
         throw new Error("Comment not found");
       }
 
       // 🔥 delete comment
       tx.delete(commentRef);
 
-      // 🔥 decrement count safely
+      // 🔥 safely decrement count
       tx.update(questionRef, {
         commentsCount: admin.firestore.FieldValue.increment(-1),
       });
@@ -36,15 +44,15 @@ exports.deleteComment = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Comment deleted",
+      message: "Comment deleted successfully",
       commentId,
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error("Delete comment error:", error);
 
     return res.status(500).json({
       success: false,
-      message: err.message,
+      message: error.message,
     });
   }
 };
