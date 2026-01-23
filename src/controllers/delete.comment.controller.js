@@ -1,4 +1,4 @@
-const { db } = require("../config/firebase");
+const { db, admin } = require("../config/firebase");
 
 /**
  * DELETE COMMENT
@@ -6,49 +6,45 @@ const { db } = require("../config/firebase");
  */
 exports.deleteComment = async (req, res) => {
   try {
-    const { commentId, role } = req.body;
+    const { questionId, commentId, role } = req.body;
 
-    // 🔐 role validation
     if (role !== "admin") {
       return res.status(401).json({
         success: false,
-        message: "Unauthenticated: Admin access required",
+        message: "Admin only",
       });
     }
 
-    if (!commentId) {
-      return res.status(400).json({
-        success: false,
-        message: "Comment ID is required",
+    const questionRef = db.collection("questions").doc(questionId);
+    const commentRef = questionRef.collection("comments").doc(commentId);
+
+    await db.runTransaction(async (tx) => {
+      const commentSnap = await tx.get(commentRef);
+
+      if (!commentSnap.exists) {
+        throw new Error("Comment not found");
+      }
+
+      // 🔥 delete comment
+      tx.delete(commentRef);
+
+      // 🔥 decrement count safely
+      tx.update(questionRef, {
+        commentsCount: admin.firestore.FieldValue.increment(-1),
       });
-    }
-
-    const commentRef = db.collection("userComments").doc(commentId);
-
-    // 🔍 existence check
-    const commentSnap = await commentRef.get();
-
-    if (!commentSnap.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "Comment not found",
-      });
-    }
-
-    // ⚡ efficient delete
-    await commentRef.delete();
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Comment deleted successfully",
+      message: "Comment deleted",
       commentId,
     });
-  } catch (error) {
-    console.error("Delete Comment Error:", error);
+  } catch (err) {
+    console.error(err);
 
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: err.message,
     });
   }
 };
