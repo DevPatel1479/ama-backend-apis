@@ -203,7 +203,7 @@ exports.sendTopicNotification = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: `Weekly notification sent to topic(s): ${weekTopics.join(
-          ", "
+          ", ",
         )}`,
       });
     } else {
@@ -227,13 +227,15 @@ exports.sendTopicNotification = async (req, res) => {
       if (topics.includes("all_clients")) rolesToStore.push("client");
       if (topics.includes("all_advocates")) rolesToStore.push("advocate");
       if (topics.includes("all_users")) rolesToStore.push("user");
+      if (topics.includes("all_legal_experts"))
+        rolesToStore.push("legal_expert");
 
       const storePromises = rolesToStore.map((role) =>
         db
           .collection("notifications")
           .doc(role)
           .collection("messages")
-          .add(messageDoc)
+          .add(messageDoc),
       );
       await Promise.all(storePromises);
       await db
@@ -567,7 +569,7 @@ exports.updateLastOpenedNotificationTime = async (req, res) => {
       {
         lastOpenedNotificationTime: unixTs,
       },
-      { merge: true }
+      { merge: true },
     );
 
     return res.status(200).json({
@@ -642,7 +644,7 @@ exports.adminUpdateLastOpenedNotificationTime = async (req, res) => {
       {
         adminLastOpenedNotificationTime: unixTs,
       },
-      { merge: true }
+      { merge: true },
     );
 
     return res.status(200).json({
@@ -763,7 +765,7 @@ exports.sendTopicNotificationV2 = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: `Weekly notification sent to topic(s): ${weekTopics.join(
-          ", "
+          ", ",
         )}`,
       });
     } else {
@@ -787,13 +789,15 @@ exports.sendTopicNotificationV2 = async (req, res) => {
       if (topics.includes("all_clients")) rolesToStore.push("client");
       if (topics.includes("all_advocates")) rolesToStore.push("advocate");
       if (topics.includes("all_users")) rolesToStore.push("user");
+      if (topics.includes("all_legal_experts"))
+        rolesToStore.push("legal_expert");
 
       const storePromises = rolesToStore.map((role) =>
         db
           .collection("notifications")
           .doc(role)
           .collection("messages")
-          .add(messageDoc)
+          .add(messageDoc),
       );
       await Promise.all(storePromises);
       await db
