@@ -128,6 +128,9 @@ exports.sendTopicNotification = async (req, res) => {
       },
       data: {
         click_action: "FLUTTER_NOTIFICATION_CLICK",
+        title: n_title,
+        body: n_body,
+        has_new_notification: "true",
       },
       android: {
         notification: {
