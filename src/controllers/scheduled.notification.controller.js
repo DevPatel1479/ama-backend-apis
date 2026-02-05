@@ -1,6 +1,6 @@
 const firebaseAdmin = require("firebase-admin");
 
-const { db, admin } = require("../config/firebase");
+const { db } = require("../config/firebase");
 
 const COLLECTION_NAME = "scheduled_notifications";
 
@@ -54,7 +54,7 @@ exports.createScheduledNotification = async (req, res) => {
       retries: 0,
       last_error: null,
 
-      created_at: admin.firestore.Timestamp.now(),
+      created_at: firebaseAdmin.firestore.Timestamp.now(),
     };
 
     const docRef = await db.collection(COLLECTION_NAME).add(docData);
@@ -76,10 +76,10 @@ exports.createScheduledNotification = async (req, res) => {
 
 exports.getDueScheduledNotifications = async (req, res) => {
   try {
-    const now = admin.firestore.Timestamp.now();
+    const now = firebaseAdmin.firestore.Timestamp.now();
 
     const snapshot = await db
-      .collection(COLLECTION)
+      .collection(COLLECTION_NAME)
       .where("scheduled_at", "<=", now)
       .where("status", "==", "pending")
       .limit(50) // safety limit
@@ -121,10 +121,10 @@ exports.updateScheduledNotificationStatus = async (req, res) => {
 
     if (error) {
       updateData.last_error = error;
-      updateData.retries = admin.firestore.FieldValue.increment(1);
+      updateData.retries = firebaseAdmin.firestore.FieldValue.increment(1);
     }
 
-    await db.collection(COLLECTION).doc(id).update(updateData);
+    await db.collection(COLLECTION_NAME).doc(id).update(updateData);
 
     return res.status(200).json({
       success: true,
