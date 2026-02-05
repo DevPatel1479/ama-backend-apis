@@ -3,17 +3,18 @@ const firebaseAdmin = require("firebase-admin");
 const { db } = require("../config/firebase");
 
 const COLLECTION_NAME = "scheduled_notifications";
+const BATCH_SIZE = 20;
 
-// 🔥 MAIN WORKER FUNCTION
 exports.runScheduledNotifications = async (req, res) => {
   try {
     const now = firebaseAdmin.firestore.Timestamp.now();
 
+    // 1️⃣ Fetch pending jobs
     const snapshot = await db
       .collection(COLLECTION_NAME)
       .where("scheduled_at", "<=", now)
       .where("status", "==", "pending")
-      .limit(20)
+      .limit(BATCH_SIZE)
       .get();
 
     if (snapshot.empty) {
@@ -23,13 +24,23 @@ exports.runScheduledNotifications = async (req, res) => {
       });
     }
 
-    for (const doc of snapshot.docs) {
+    // 2️⃣ LOCK jobs → status = processing
+    const lockBatch = db.batch();
+    snapshot.docs.forEach((doc) => {
+      lockBatch.update(doc.ref, {
+        status: "processing",
+        processing_at: now,
+      });
+    });
+    await lockBatch.commit();
+
+    // 3️⃣ FIRE REQUESTS IN PARALLEL
+    const tasks = snapshot.docs.map(async (doc) => {
       const data = doc.data();
 
       try {
-        // 🔁 CALL EXISTING sendTopicNotification API
         await axios.post(
-          `${process.env.BASE_API_URL}/send-topic-notification`,
+          `${process.env.BASE_API_URL}/notifications/send-topic-notification`,
           {
             user_id: data.user_id,
             topic: data.topic,
@@ -39,25 +50,48 @@ exports.runScheduledNotifications = async (req, res) => {
           },
         );
 
-        // ✅ MARK AS SENT
-        await doc.ref.update({
+        return {
+          ref: doc.ref,
+          status: "sent",
+        };
+      } catch (err) {
+        return {
+          ref: doc.ref,
+          status: "failed",
+          error: err.message,
+        };
+      }
+    });
+
+    const results = await Promise.allSettled(tasks);
+
+    // 4️⃣ BATCH UPDATE RESULTS
+    const resultBatch = db.batch();
+
+    results.forEach((result) => {
+      if (result.status !== "fulfilled") return;
+
+      const { ref, status, error } = result.value;
+
+      if (status === "sent") {
+        resultBatch.update(ref, {
           status: "sent",
           sent_at: firebaseAdmin.firestore.Timestamp.now(),
         });
-      } catch (err) {
-        console.error("Send failed:", err.message);
-
-        await doc.ref.update({
+      } else {
+        resultBatch.update(ref, {
           status: "failed",
-          last_error: err.message,
+          last_error: error,
           retries: firebaseAdmin.firestore.FieldValue.increment(1),
         });
       }
-    }
+    });
+
+    await resultBatch.commit();
 
     return res.status(200).json({
       success: true,
-      message: "Scheduled notifications processed",
+      processed: results.length,
     });
   } catch (error) {
     console.error("Scheduler worker error:", error);
