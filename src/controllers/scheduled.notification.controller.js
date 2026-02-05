@@ -12,23 +12,15 @@ exports.createScheduledNotification = async (req, res) => {
       n_title,
       n_body,
       send_weekly = false,
-      scheduledDate, // YYYY-MM-DD
-      scheduledTime, // HH:mm
+      scheduled_at_utc,
     } = req.body;
 
     // 🔐 Validation (matches sendTopicNotification)
-    if (
-      !user_id ||
-      !topic ||
-      !n_title ||
-      !n_body ||
-      !scheduledDate ||
-      !scheduledTime
-    ) {
+    if (!user_id || !topic || !n_title || !n_body || !scheduled_at_utc) {
       return res.status(400).json({
         success: false,
         message:
-          "user_id, topic, n_title, n_body, scheduledDate, scheduledTime are required",
+          "user_id, topic, n_title, n_body, scheduled_at_utc are required",
       });
     }
 
@@ -36,10 +28,8 @@ exports.createScheduledNotification = async (req, res) => {
     const topics = Array.isArray(topic) ? topic : [topic];
 
     // Combine date + time → UTC
-    const [hour, minute] = scheduledTime.split(":").map(Number);
-    const [year, month, day] = scheduledDate.split("-").map(Number);
 
-    const scheduledAt = new Date(year, month - 1, day, hour, minute);
+    const scheduledAt = new Date(scheduled_at_utc);
 
     const docData = {
       user_id,
