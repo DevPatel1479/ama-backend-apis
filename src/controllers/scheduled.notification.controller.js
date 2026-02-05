@@ -1,3 +1,5 @@
+const firebaseAdmin = require("firebase-admin");
+
 const { db, admin } = require("../config/firebase");
 
 const COLLECTION_NAME = "scheduled_notifications";
@@ -46,7 +48,7 @@ exports.createScheduledNotification = async (req, res) => {
       n_body,
       send_weekly: !!send_weekly,
 
-      scheduled_at: admin.firestore.Timestamp.fromDate(scheduledAt),
+      scheduled_at: firebaseAdmin.firestore.Timestamp.fromDate(scheduledAt),
 
       status: "pending",
       retries: 0,
