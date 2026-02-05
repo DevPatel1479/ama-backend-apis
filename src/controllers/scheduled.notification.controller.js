@@ -39,7 +39,7 @@ exports.createScheduledNotification = async (req, res) => {
     const [hour, minute] = scheduledTime.split(":").map(Number);
     const [year, month, day] = scheduledDate.split("-").map(Number);
 
-    const scheduledAt = new Date(Date.UTC(year, month - 1, day, hour, minute));
+    const scheduledAt = new Date(year, month - 1, day, hour, minute);
 
     const docData = {
       user_id,
