@@ -1,5 +1,7 @@
 const { db, admin } = require("../config/firebase");
-
+const {
+  sendAnswerNotificationBackground,
+} = require("../services/notification.service");
 // POST: Create a new question
 const createQuestion = async (req, res) => {
   try {
@@ -125,7 +127,8 @@ const addAnswer = async (req, res) => {
 
     const questionRef = db.collection("questions").doc(questionId);
     const questionSnapshot = await questionRef.get();
-
+    const questionData = questionSnapshot.data();
+    const phone = questionData.phone;
     if (!questionSnapshot.exists) {
       return res.status(404).json({ error: "Question not found" });
     }
@@ -144,6 +147,12 @@ const addAnswer = async (req, res) => {
     res
       .status(200)
       .json({ message: "Answer added successfully", answer: answerData });
+
+    sendAnswerNotificationBackground({
+      phone,
+      answered_by: answeredBy,
+      answer_content: content,
+    }).catch(console.error);
   } catch (error) {
     console.error("Error adding answer:", error);
     res.status(500).json({ error: "Internal Server Error" });
