@@ -435,6 +435,92 @@ exports.getNotificationsByRole = async (req, res) => {
   }
 };
 
+exports.getNotificationsByRoleV2 = async (req, res) => {
+  try {
+    const role = (req.params.role || "").toLowerCase();
+
+    if (!role) {
+      return res.status(400).json({
+        success: false,
+        message: "Role path param is required",
+      });
+    }
+
+    if (role === "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access to admin notifications denied",
+      });
+    }
+
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const lastDocId = req.query.lastDocId || null;
+
+    let queryRef = db
+      .collection("notifications")
+      .doc(role)
+      .collection("messages")
+      .orderBy("timestamp", "desc")
+      .limit(limit);
+
+    // ✅ Cursor pagination
+    if (lastDocId) {
+      const lastDoc = await db
+        .collection("notifications")
+        .doc(role)
+        .collection("messages")
+        .doc(lastDocId)
+        .get();
+
+      if (lastDoc.exists) {
+        queryRef = queryRef.startAfter(lastDoc);
+      }
+    }
+
+    const snapshot = await queryRef.get();
+
+    if (snapshot.empty) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        lastDocId: null,
+        hasMore: false,
+      });
+    }
+
+    const results = snapshot.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        title: d.n_title,
+        body: d.n_body,
+        timestamp: d.timestamp,
+        sent_by: d.sent_by || null,
+        topics: d.topics || [],
+      };
+    });
+
+    const newLastDocId =
+      snapshot.docs.length > 0
+        ? snapshot.docs[snapshot.docs.length - 1].id
+        : null;
+
+    return res.status(200).json({
+      success: true,
+      data: results,
+      lastDocId: newLastDocId,
+      hasMore: snapshot.docs.length === limit,
+    });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch notifications",
+      error: error.message,
+    });
+  }
+};
+
 exports.getUserNotificationHistory = async (req, res) => {
   try {
     const { user_id } = req.params;
