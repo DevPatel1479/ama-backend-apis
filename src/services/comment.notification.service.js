@@ -4,6 +4,7 @@ exports.sendCommentNotificationBackground = async ({
   questionOwnerPhone,
   commented_by,
   comment_content,
+  user_role,
 }) => {
   try {
     if (!questionOwnerPhone) return;
@@ -46,17 +47,13 @@ exports.sendCommentNotificationBackground = async ({
         },
       }),
 
-      db
-        .collection("question_notifications")
-        .doc(phoneDocId)
-        .collection("messages")
-        .add({
-          title: n_title,
-          body: comment_content,
-          commented_by,
-          type: "comment",
-          timestamp: unixTs,
-        }),
+      db.collection("notifications").doc(user_role).collection("messages").add({
+        n_title: n_title,
+        n_body: comment_content,
+        phone: questionOwnerPhone,
+        sent_by: commented_by,
+        timestamp: unixTs,
+      }),
     ]);
   } catch (err) {
     console.error("Comment notification failed:", err);

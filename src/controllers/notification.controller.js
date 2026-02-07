@@ -442,18 +442,26 @@ exports.getNotificationsByRole = async (req, res) => {
 exports.getNotificationsByRoleV2 = async (req, res) => {
   try {
     const role = (req.params.role || "").toLowerCase();
+    const phone = req.query.phone;
 
     if (!role) {
       return res.status(400).json({
         success: false,
-        message: "Role path param is required",
+        message: "Role is required",
+      });
+    }
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone is required",
       });
     }
 
     if (role === "admin") {
       return res.status(403).json({
         success: false,
-        message: "Access to admin notifications denied",
+        message: "Admin notifications blocked",
       });
     }
 
@@ -464,10 +472,11 @@ exports.getNotificationsByRoleV2 = async (req, res) => {
       .collection("notifications")
       .doc(role)
       .collection("messages")
+      .where("phone", "in", ["GLOBAL", phone])
       .orderBy("timestamp", "desc")
       .limit(limit);
 
-    // ✅ Cursor pagination
+    // Pagination cursor
     if (lastDocId) {
       const lastDoc = await db
         .collection("notifications")
@@ -501,13 +510,11 @@ exports.getNotificationsByRoleV2 = async (req, res) => {
         timestamp: d.timestamp,
         sent_by: d.sent_by || null,
         topics: d.topics || [],
+        phone: d.phone || "GLOBAL",
       };
     });
 
-    const newLastDocId =
-      snapshot.docs.length > 0
-        ? snapshot.docs[snapshot.docs.length - 1].id
-        : null;
+    const newLastDocId = snapshot.docs[snapshot.docs.length - 1]?.id || null;
 
     return res.status(200).json({
       success: true,
@@ -516,14 +523,15 @@ exports.getNotificationsByRoleV2 = async (req, res) => {
       hasMore: snapshot.docs.length === limit,
     });
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    console.error("Notification fetch error:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch notifications",
+      message: "Fetch failed",
       error: error.message,
     });
   }
 };
+
 
 exports.getUserNotificationHistory = async (req, res) => {
   try {

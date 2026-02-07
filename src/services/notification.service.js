@@ -4,6 +4,7 @@ exports.sendAnswerNotificationBackground = async ({
   phone,
   answered_by,
   answer_content,
+  user_role,
 }) => {
   // console.log("calling this  ... ");
   try {
@@ -42,13 +43,14 @@ exports.sendAnswerNotificationBackground = async ({
 
     // Store notification
     await db
-      .collection("question_notifications")
-      .doc(phoneDocId)
+      .collection("notifications")
+      .doc(user_role)
       .collection("messages")
       .add({
-        title: n_title,
-        body: answer_content,
-        answered_by,
+        n_title: n_title,
+        n_body: answer_content,
+        phone: phone,
+        sent_by: answered_by,
         timestamp: unixTs,
       });
   } catch (err) {

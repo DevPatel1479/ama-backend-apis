@@ -129,6 +129,8 @@ const addAnswer = async (req, res) => {
     const questionSnapshot = await questionRef.get();
     const questionData = questionSnapshot.data();
     const phone = questionData.phone;
+    const userRole = questionData.userRole;
+
     if (!questionSnapshot.exists) {
       return res.status(404).json({ error: "Question not found" });
     }
@@ -148,6 +150,7 @@ const addAnswer = async (req, res) => {
       phone,
       answered_by: answeredBy,
       answer_content: content,
+      user_role: userRole,
     });
     res
       .status(200)
