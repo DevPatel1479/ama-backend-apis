@@ -54,19 +54,21 @@ const addComment = async (req, res) => {
       timestamp: unixTimestamp,
     };
 
-    await newCommentRef.set(commentData);
+    await Promise.all([
+      newCommentRef.set(commentData),
 
-    // 🔹 Update question comment count
+      // 🔹 Update question comment count
 
-    await questionRef.update({
-      commentsCount: FieldValue.increment(1),
-    });
+      questionRef.update({
+        commentsCount: FieldValue.increment(1),
+      }),
 
-    // 🔹 Save a copy in userComments for global tracking
-    await userCommentsRef.add({
-      ...commentData,
-      questionId,
-    });
+      // 🔹 Save a copy in userComments for global tracking
+      userCommentsRef.add({
+        ...commentData,
+        questionId,
+      }),
+    ]);
 
     await sendCommentNotificationBackground({
       questionOwnerPhone,
