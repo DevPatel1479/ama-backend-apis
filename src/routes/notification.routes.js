@@ -23,7 +23,7 @@ router.post("/admin/last-seen", adminGetLastOpenedNotificationTime);
 router.post("/admin/mark-seen", adminUpdateLastOpenedNotificationTime);
 
 router.get("/get-notification/:role", getNotificationsByRole);
-router.get("/get-notification/v2/:role", getNotificationsByRole);
+router.get("/get-notification/v2/:role", getNotificationsByRoleV2);
 router.get("/history/:user_id", getUserNotificationHistory);
 
 router.post("/send-topic-notification/v2", sendTopicNotificationV2);
