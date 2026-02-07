@@ -226,6 +226,7 @@ exports.sendTopicNotification = async (req, res) => {
         n_body,
         timestamp: unixTs,
         sent_by: user_id,
+        phone: phoneField,
         topics: topics,
       };
 
