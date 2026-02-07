@@ -1,4 +1,7 @@
 const { db, admin } = require("../config/firebase");
+const {
+  sendCommentNotificationBackground,
+} = require("../services/comment.notification.service");
 const FieldValue = require("firebase-admin").firestore.FieldValue;
 // POST: Add a comment to a question
 // POST: Add a comment to a question
@@ -29,11 +32,16 @@ const addComment = async (req, res) => {
       });
     }
 
+    const questionRef = db.collection("questions").doc(questionId);
+    const questionSnap = await questionRef.get();
+    if (!questionSnap.exists) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    const questionData = questionSnap.data();
+    const questionOwnerPhone = questionData.phone;
     // 🔹 Add comment to question
-    const commentsRef = db
-      .collection("questions")
-      .doc(questionId)
-      .collection("comments");
+    const commentsRef = questionRef.collection("comments");
 
     const newCommentRef = commentsRef.doc();
 
@@ -49,7 +57,7 @@ const addComment = async (req, res) => {
     await newCommentRef.set(commentData);
 
     // 🔹 Update question comment count
-    const questionRef = db.collection("questions").doc(questionId);
+
     await questionRef.update({
       commentsCount: FieldValue.increment(1),
     });
@@ -60,6 +68,11 @@ const addComment = async (req, res) => {
       questionId,
     });
 
+    await sendCommentNotificationBackground({
+      questionOwnerPhone,
+      commented_by: commentedBy,
+      comment_content: content,
+    });
     res.status(201).json({ id: newCommentRef.id, ...commentData });
   } catch (error) {
     console.error("🔥 Error adding comment:", error.message, error.stack);
