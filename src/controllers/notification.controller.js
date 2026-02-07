@@ -121,6 +121,7 @@ exports.sendTopicNotification = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
+    const phoneField = "GLOBAL";
     const messagePayload = {
       notification: {
         title: n_title,
@@ -164,6 +165,7 @@ exports.sendTopicNotification = async (req, res) => {
       timestamp: unixTs,
       sent_by: user_id,
       topics,
+      phone: phoneField,
       send_weekly: !!send_weekly,
     };
 
@@ -812,6 +814,7 @@ exports.sendTopicNotificationV2 = async (req, res) => {
       timestamp: unixTs,
       sent_by: user_id,
       topics,
+      phone: "GLOBAL",
       send_weekly: !!send_weekly,
     };
 
