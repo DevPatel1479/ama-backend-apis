@@ -6,8 +6,11 @@ exports.sendCommentNotificationBackground = async ({
   comment_content,
 }) => {
   try {
+    if (!questionOwnerPhone) return;
+
     const phoneDocId = `91${questionOwnerPhone}`;
 
+    // ✅ Read user once
     const userDoc = await db.collection("login_users").doc(phoneDocId).get();
     if (!userDoc.exists) return;
 
@@ -28,32 +31,33 @@ exports.sendCommentNotificationBackground = async ({
 
     const unixTs = Math.floor(Date.now() / 1000);
 
-    // 🔥 Send FCM
-    await admin.messaging().send({
-      token: fcmToken,
-      notification: {
-        title: n_title,
-        body: n_body,
-      },
-      data: {
-        click_action: "FLUTTER_NOTIFICATION_CLICK",
-        comment_content,
-        type: "ama_comment",
-      },
-    });
+    // 🔹 Run FCM send and Firestore write in parallel
+    await Promise.all([
+      admin.messaging().send({
+        token: fcmToken,
+        notification: {
+          title: n_title,
+          body: n_body,
+        },
+        data: {
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+          comment_content,
+          type: "ama_comment",
+        },
+      }),
 
-    // 🔥 Store Notification (SAME STRUCTURE AS ANSWER)
-    await db
-      .collection("question_notifications")
-      .doc(phoneDocId)
-      .collection("messages")
-      .add({
-        title: n_title,
-        body: comment_content,
-        commented_by,
-        type: "comment",
-        timestamp: unixTs,
-      });
+      db
+        .collection("question_notifications")
+        .doc(phoneDocId)
+        .collection("messages")
+        .add({
+          title: n_title,
+          body: comment_content,
+          commented_by,
+          type: "comment",
+          timestamp: unixTs,
+        }),
+    ]);
   } catch (err) {
     console.error("Comment notification failed:", err);
   }
