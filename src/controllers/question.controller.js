@@ -144,15 +144,14 @@ const addAnswer = async (req, res) => {
 
     await questionRef.update({ answer: answerData });
 
-    res
-      .status(200)
-      .json({ message: "Answer added successfully", answer: answerData });
-
-    sendAnswerNotificationBackground({
+    await sendAnswerNotificationBackground({
       phone,
       answered_by: answeredBy,
       answer_content: content,
-    }).catch(console.error);
+    });
+    res
+      .status(200)
+      .json({ message: "Answer added successfully", answer: answerData });
   } catch (error) {
     console.error("Error adding answer:", error);
     res.status(500).json({ error: "Internal Server Error" });

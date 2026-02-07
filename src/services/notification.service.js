@@ -5,6 +5,7 @@ exports.sendAnswerNotificationBackground = async ({
   answered_by,
   answer_content,
 }) => {
+  // console.log("calling this  ... ");
   try {
     const phoneDocId = `91${phone}`;
 
