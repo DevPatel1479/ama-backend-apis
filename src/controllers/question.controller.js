@@ -119,7 +119,7 @@ const getUserQuestions = async (req, res) => {
 const addAnswer = async (req, res) => {
   try {
     const { questionId } = req.params;
-    const { content, answeredBy, role } = req.body;
+    const { content, answeredBy, role, questionOwnerPhone } = req.body;
 
     if (!questionId || !content || !answeredBy || !role) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -128,7 +128,7 @@ const addAnswer = async (req, res) => {
     const questionRef = db.collection("questions").doc(questionId);
     const questionSnapshot = await questionRef.get();
     const questionData = questionSnapshot.data();
-    const phone = questionData.phone;
+    const phone = questionOwnerPhone;
     const userRole = questionData.userRole;
 
     if (!questionSnapshot.exists) {

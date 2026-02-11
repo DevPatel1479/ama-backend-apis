@@ -75,7 +75,7 @@ const addComment = async (req, res) => {
       questionOwnerPhone,
       commented_by: commentedBy,
       comment_content: content,
-      user_role: questionOwnerRole
+      user_role: questionOwnerRole,
     });
     res.status(201).json({ id: newCommentRef.id, ...commentData });
   } catch (error) {
