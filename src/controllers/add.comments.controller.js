@@ -39,7 +39,7 @@ const addComment = async (req, res) => {
     }
 
     const questionData = questionSnap.data();
-    const questionOwnerPhone = questionData.phone;
+    const questionOwnerPhone = phone;
     const questionOwnerRole = questionData.userRole;
     // 🔹 Add comment to question
     const commentsRef = questionRef.collection("comments");
