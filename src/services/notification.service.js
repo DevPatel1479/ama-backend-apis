@@ -41,9 +41,25 @@ exports.sendAnswerNotificationBackground = async ({
         type: "ama_answer",
         questionId: questionId,
       },
+      android: {
+        priority: "high",
+        notification: {
+          clickAction: "FLUTTER_NOTIFICATION_CLICK",
+          channelId: "ama_legal_solutions_channel",
+        },
+      },
       apns: {
+        headers: {
+          "apns-priority": "10",
+        },
         payload: {
           aps: {
+            alert: {
+              title: n_title,
+              body: n_body,
+            },
+            sound: "default",
+            badge: 1,
             contentAvailable: true,
           },
         },
