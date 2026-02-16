@@ -151,6 +151,7 @@ const addAnswer = async (req, res) => {
       answered_by: answeredBy,
       answer_content: content,
       user_role: userRole,
+      questionId: questionId,
     });
     res
       .status(200)

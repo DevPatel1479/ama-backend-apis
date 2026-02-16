@@ -5,6 +5,7 @@ exports.sendAnswerNotificationBackground = async ({
   answered_by,
   answer_content,
   user_role,
+  questionId,
 }) => {
   // console.log("calling this  ... ");
   try {
@@ -38,6 +39,7 @@ exports.sendAnswerNotificationBackground = async ({
         click_action: "FLUTTER_NOTIFICATION_CLICK",
         answer_content,
         type: "ama_answer",
+        questionId: questionId,
       },
     });
 

@@ -5,6 +5,8 @@ exports.sendCommentNotificationBackground = async ({
   commented_by,
   comment_content,
   user_role,
+  commentId,
+  questionId,
 }) => {
   try {
     if (!questionOwnerPhone) return;
@@ -17,7 +19,7 @@ exports.sendCommentNotificationBackground = async ({
 
     const fcmToken = userDoc.data()?.fcm_token;
     if (!fcmToken) return;
-
+    console.log(`found fcm token ... ${fcmToken}`);
     const truncateText = (text, maxLength = 120) => {
       if (!text) return "";
       return text.length > maxLength
@@ -44,6 +46,8 @@ exports.sendCommentNotificationBackground = async ({
           click_action: "FLUTTER_NOTIFICATION_CLICK",
           comment_content,
           type: "ama_comment",
+          questionId: questionId,
+          commentId: commentId,
         },
       }),
 

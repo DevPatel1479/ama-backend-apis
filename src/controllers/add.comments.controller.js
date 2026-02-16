@@ -40,11 +40,14 @@ const addComment = async (req, res) => {
 
     const questionData = questionSnap.data();
     const questionOwnerPhone = phone;
+
+    console.log(`getting user phone ${questionOwnerPhone}`);
     const questionOwnerRole = questionData.userRole;
     // 🔹 Add comment to question
     const commentsRef = questionRef.collection("comments");
 
     const newCommentRef = commentsRef.doc();
+    const commentId = newCommentRef.id;
 
     const commentData = {
       commentedBy,
@@ -76,8 +79,10 @@ const addComment = async (req, res) => {
       commented_by: commentedBy,
       comment_content: content,
       user_role: questionOwnerRole,
+      commentId: commentId,
+      questionId: questionId,
     });
-    res.status(201).json({ id: newCommentRef.id, ...commentData });
+    res.status(201).json({ id: commentId, ...commentData });
   } catch (error) {
     console.error("🔥 Error adding comment:", error.message, error.stack);
     res.status(500).json({ error: error.message });
