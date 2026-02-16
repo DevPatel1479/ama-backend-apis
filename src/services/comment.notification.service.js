@@ -49,6 +49,13 @@ exports.sendCommentNotificationBackground = async ({
           questionId: questionId,
           commentId: commentId,
         },
+        apns: {
+          payload: {
+            aps: {
+              contentAvailable: true,
+            },
+          },
+        },
       }),
 
       db.collection("notifications").doc(user_role).collection("messages").add({

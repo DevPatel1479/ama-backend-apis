@@ -41,6 +41,13 @@ exports.sendAnswerNotificationBackground = async ({
         type: "ama_answer",
         questionId: questionId,
       },
+      apns: {
+        payload: {
+          aps: {
+            contentAvailable: true,
+          },
+        },
+      },
     });
 
     // Store notification
