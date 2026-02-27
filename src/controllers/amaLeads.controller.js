@@ -51,3 +51,56 @@ exports.fetchAmaLeadsTest = async (req, res) => {
     return res.status(500).json({ message: "Error fetching leads" });
   }
 };
+
+exports.fetchAmaLeadsAdmin = async (req, res) => {
+  try {
+    let { role, limit = 20, cursorId } = req.query;
+    limit = Number(limit);
+
+    // 🔐 Strict role check
+    if (role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: Admin access only" });
+    }
+
+    let query = crmDb
+      .collection("ama_leads")
+      .orderBy("synced_at", "desc") // latest first
+      .orderBy("__name__") // stable pagination
+      .limit(limit);
+
+    // ✅ Proper cursor handling
+    if (cursorId) {
+      const lastDocSnap = await crmDb
+        .collection("ama_leads")
+        .doc(cursorId)
+        .get();
+
+      if (lastDocSnap.exists) {
+        query = query.startAfter(lastDocSnap.get("synced_at"), lastDocSnap.id);
+      }
+    }
+
+    const snapshot = await query.get();
+
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+
+    return res.json({
+      totalFetched: snapshot.size,
+      matchedCount: data.length,
+      data,
+      nextCursorId: lastDoc ? lastDoc.id : null,
+      hasMore: snapshot.docs.length === limit,
+      message: "Admin fetched ALL AMA leads (latest first)",
+    });
+  } catch (err) {
+    console.error("AMA Leads Admin Error:", err);
+    return res.status(500).json({ message: "Error fetching admin leads" });
+  }
+};
