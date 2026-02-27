@@ -119,7 +119,7 @@ const getUserQuestions = async (req, res) => {
 const addAnswer = async (req, res) => {
   try {
     const { questionId } = req.params;
-    const { content, answeredBy, role, questionOwnerPhone } = req.body;
+    const {  content, answeredBy, role, questionOwnerPhone } = req.body;
 
     if (!questionId || !content || !answeredBy || !role) {
       return res.status(400).json({ error: "Missing required fields" });
