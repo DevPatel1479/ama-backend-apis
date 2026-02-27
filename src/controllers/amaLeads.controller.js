@@ -13,6 +13,7 @@ exports.fetchAmaLeadsTest = async (req, res) => {
     let query = crmDb
       .collection("ama_leads")
       .where("assigned_to", "==", name) // DB-level filter
+      .orderBy("synced_at", "desc")
       .orderBy("__name__") // order by docId (required for cursor)
       .limit(limit);
 
