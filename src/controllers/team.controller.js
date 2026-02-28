@@ -51,6 +51,8 @@ const { amaDb } = require("../config/amaFirebase");
 //   }
 // };
 
+// team.controller.js
+
 const ROLE_PRIORITY = ["lawyer", "tech", "business_development"];
 
 exports.getTeamMembers = async (req, res) => {
@@ -62,15 +64,16 @@ exports.getTeamMembers = async (req, res) => {
     const skip = (page - 1) * limit;
     const usersRef = amaDb.collection("users");
 
+    // 🚀 Run all role queries in parallel
+    const roleQueries = ROLE_PRIORITY.map((role) =>
+      usersRef.where("role", "==", role).orderBy("sort", "asc").get(),
+    );
+
+    const snapshots = await Promise.all(roleQueries);
+
     let mergedResults = [];
 
-    // 🔥 Role-wise sorted fetch
-    for (const role of ROLE_PRIORITY) {
-      const snapshot = await usersRef
-        .where("role", "==", role)
-        .orderBy("sort", "asc")
-        .get();
-
+    snapshots.forEach((snapshot) => {
       snapshot.forEach((doc) => {
         const data = doc.data();
         mergedResults.push({
@@ -80,9 +83,9 @@ exports.getTeamMembers = async (req, res) => {
           position: data.position || "",
         });
       });
-    }
+    });
 
-    // 🔁 Pagination AFTER merge
+    // 🔁 Same pagination logic
     const total = mergedResults.length;
     const totalPages = Math.ceil(total / limit);
     const paginatedData = mergedResults.slice(skip, skip + limit);
