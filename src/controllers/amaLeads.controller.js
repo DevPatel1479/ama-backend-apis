@@ -194,7 +194,12 @@ exports.fetchAmaLeadsTest = async (req, res) => {
 
 exports.fetchAmaLeadsAdmin = async (req, res) => {
   try {
-    let { limit = 20, cursorId, search } = req.query;
+    let { role, limit = 20, cursorId, search } = req.query;
+    if (role !== "admin") {
+      return res.status(403).json({
+        message: "Forbidden: Unauthenticated or insufficient permissions",
+      });
+    }
     limit = Number(limit);
 
     // ---------------- NORMAL FLOW (NO SEARCH) ----------------
