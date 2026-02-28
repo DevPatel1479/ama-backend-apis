@@ -150,6 +150,17 @@ exports.fetchAmaLeadsTest = async (req, res) => {
     });
 
     const allDocs = Array.from(mergedDocs.values());
+    allDocs.sort((a, b) => {
+      const aTs = a.get("synced_at");
+      const bTs = b.get("synced_at");
+
+      const aTime =
+        aTs && typeof aTs.toMillis === "function" ? aTs.toMillis() : 0;
+      const bTime =
+        bTs && typeof bTs.toMillis === "function" ? bTs.toMillis() : 0;
+
+      return bTime - aTime; // latest first
+    });
 
     // 🔥 Keep your cursor pagination behavior for search results
     let startIndex = 0;
@@ -323,7 +334,17 @@ exports.fetchAmaLeadsAdmin = async (req, res) => {
     });
 
     const allDocs = Array.from(mergedDocs.values());
+    allDocs.sort((a, b) => {
+      const aTs = a.get("synced_at");
+      const bTs = b.get("synced_at");
 
+      const aTime =
+        aTs && typeof aTs.toMillis === "function" ? aTs.toMillis() : 0;
+      const bTime =
+        bTs && typeof bTs.toMillis === "function" ? bTs.toMillis() : 0;
+
+      return bTime - aTime; // latest first
+    });
     // 🔥 Keep your cursor pagination behavior
     let startIndex = 0;
     if (cursorId) {
