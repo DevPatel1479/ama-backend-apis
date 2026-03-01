@@ -31,6 +31,7 @@ const loginStatusRoutes = require("./src/routes/login.status.routes");
 const scheduledNotificationRoutes = require("./src/routes/scheduled.notification.routes");
 const schedulerExecutorRoutes = require("./src/routes/scheduler.routes");
 const amaLeadsRoutes = require("./src/routes/amaLeads.routes");
+const billCutLeadsRoutes = require("./src/routes/billCutLeads.routes");
 
 app.use(express.json());
 app.use("/api", registerRoutes);
@@ -60,6 +61,7 @@ app.use("/api", loginStatusRoutes);
 app.use("/api/notifications", scheduledNotificationRoutes);
 app.use("/api/notif/scheduler", schedulerExecutorRoutes);
 app.use("/api", amaLeadsRoutes);
+app.use("/api", billCutLeadsRoutes);
 // ✅ Error handler for Multer file size limits
 app.use((err, req, res, next) => {
   if (err.code === "LIMIT_FILE_SIZE") {
