@@ -40,7 +40,7 @@ const addComment = async (req, res) => {
     const questionData = questionSnap.data();
     const questionOwnerPhone = phone;
     const final_phone = questionData.phone;
-    console.log(`getting user phone ${questionOwnerPhone}`);
+    // console.log(`getting user phone ${questionOwnerPhone}`);
     const questionOwnerRole = questionData.userRole;
 
     // 🔹 Add comment to question
@@ -73,9 +73,10 @@ const addComment = async (req, res) => {
         questionId,
       }),
     ]);
+    // console.log(`final phone checker : ${final_phone != questionOwnerPhone}`);
     if (final_phone != questionOwnerPhone) {
       await sendCommentNotificationBackground({
-        questionOwnerPhone,
+        questionOwnerPhone: final_phone,
         commented_by: commentedBy,
         comment_content: content,
         user_role: questionOwnerRole,

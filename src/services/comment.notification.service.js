@@ -9,17 +9,19 @@ exports.sendCommentNotificationBackground = async ({
   questionId,
 }) => {
   try {
+    console.log(questionOwnerPhone);
     if (!questionOwnerPhone) return;
 
     const phoneDocId = `91${questionOwnerPhone}`;
-
+    // console.log(`phoneDocId ${phoneDocId}`);
     // ✅ Read user once
     const userDoc = await db.collection("login_users").doc(phoneDocId).get();
+
     if (!userDoc.exists) return;
 
     const fcmToken = userDoc.data()?.fcm_token;
     if (!fcmToken) return;
-    console.log(`found fcm token ... ${fcmToken}`);
+    // console.log(`found fcm token ... ${fcmToken}`);
     const truncateText = (text, maxLength = 120) => {
       if (!text) return "";
       return text.length > maxLength
