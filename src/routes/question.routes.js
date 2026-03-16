@@ -4,6 +4,7 @@ const {
   getQuestions,
   getUserQuestions,
   addAnswer,
+  searchQuestions,
 } = require("../controllers/question.controller");
 
 const { deleteQuestion } = require("../controllers/delete.question.controller");
@@ -15,5 +16,5 @@ router.get("/get", getQuestions);
 router.get("/user/:userId", getUserQuestions);
 router.post("/add/:questionId/answer", addAnswer);
 router.delete("/delete-question", deleteQuestion);
-
+router.get("/search-questions", searchQuestions);
 module.exports = router;

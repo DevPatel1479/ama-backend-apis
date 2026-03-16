@@ -119,7 +119,7 @@ const getUserQuestions = async (req, res) => {
 const addAnswer = async (req, res) => {
   try {
     const { questionId } = req.params;
-    const {  content, answeredBy, role, questionOwnerPhone } = req.body;
+    const { content, answeredBy, role, questionOwnerPhone } = req.body;
 
     if (!questionId || !content || !answeredBy || !role) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -162,9 +162,75 @@ const addAnswer = async (req, res) => {
   }
 };
 
+// GET: Search questions by content with pagination
+const searchQuestions = async (req, res) => {
+  try {
+    const { term, limit = 10, lastVisible } = req.query;
+
+    if (!term || term.trim() === "") {
+      return res.status(400).json({
+        error: "Search term is required",
+      });
+    }
+
+    const searchTerm = term.toLowerCase();
+
+    let query = db
+      .collection("questions")
+      .orderBy("content")
+      .where("content", ">=", searchTerm)
+      .where("content", "<=", searchTerm + "\uf8ff")
+      .limit(Number(limit));
+
+    // Pagination support
+    if (lastVisible) {
+      const lastDoc = await db.collection("questions").doc(lastVisible).get();
+
+      if (lastDoc.exists) {
+        query = query.startAfter(lastDoc.data().content);
+      }
+    }
+
+    const snapshot = await query.get();
+
+    if (snapshot.empty) {
+      return res.status(404).json({
+        questions: [],
+        lastVisible: null,
+        message: "No matching questions found",
+      });
+    }
+
+    const questions = [];
+
+    snapshot.forEach((doc) => {
+      questions.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+
+    const newLastVisible =
+      snapshot.docs.length > 0
+        ? snapshot.docs[snapshot.docs.length - 1].id
+        : null;
+
+    res.json({
+      questions,
+      lastVisible: newLastVisible,
+    });
+  } catch (error) {
+    console.error("Error searching questions:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+    });
+  }
+};
+
 module.exports = {
   createQuestion,
   getQuestions,
   getUserQuestions,
   addAnswer,
+  searchQuestions,
 };
