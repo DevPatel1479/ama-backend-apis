@@ -4,8 +4,7 @@ const {
 } = require("../services/comment.notification.service");
 const FieldValue = require("firebase-admin").firestore.FieldValue;
 // POST: Add a comment to a question
-// POST: Add a comment to a question
-// POST: Add a comment to a question
+
 const addComment = async (req, res) => {
   try {
     const { commentedBy, userRole, phone, profileImgUrl, content, questionId } =
@@ -40,9 +39,10 @@ const addComment = async (req, res) => {
 
     const questionData = questionSnap.data();
     const questionOwnerPhone = phone;
-
+    const final_phone = questionData.phone;
     console.log(`getting user phone ${questionOwnerPhone}`);
     const questionOwnerRole = questionData.userRole;
+
     // 🔹 Add comment to question
     const commentsRef = questionRef.collection("comments");
 
@@ -73,15 +73,17 @@ const addComment = async (req, res) => {
         questionId,
       }),
     ]);
+    if (final_phone != questionOwnerPhone) {
+      await sendCommentNotificationBackground({
+        questionOwnerPhone,
+        commented_by: commentedBy,
+        comment_content: content,
+        user_role: questionOwnerRole,
+        commentId: commentId,
+        questionId: questionId,
+      });
+    }
 
-    await sendCommentNotificationBackground({
-      questionOwnerPhone,
-      commented_by: commentedBy,
-      comment_content: content,
-      user_role: questionOwnerRole,
-      commentId: commentId,
-      questionId: questionId,
-    });
     res.status(201).json({ id: commentId, ...commentData });
   } catch (error) {
     console.error("🔥 Error adding comment:", error.message, error.stack);
