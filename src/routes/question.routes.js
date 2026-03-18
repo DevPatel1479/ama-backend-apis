@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   createQuestion,
+  createQuestionV2,
   getQuestions,
   getUserQuestions,
   addAnswer,
@@ -12,6 +13,7 @@ const { deleteQuestion } = require("../controllers/delete.question.controller");
 const router = express.Router();
 
 router.post("/create", createQuestion);
+router.post("/create/v2", createQuestion);
 router.get("/get", getQuestions);
 router.get("/user/:userId", getUserQuestions);
 router.post("/add/:questionId/answer", addAnswer);

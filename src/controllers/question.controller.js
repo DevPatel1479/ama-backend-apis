@@ -36,6 +36,47 @@ const createQuestion = async (req, res) => {
   }
 };
 
+const createQuestionV2 = async (req, res) => {
+  try {
+    const {
+      userId,
+      userName,
+      userRole,
+      phone,
+      profileImgUrl,
+      content,
+      selected_service,
+    } = req.body;
+
+    if (!userId || !content) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const newQuestionRef = db.collection("questions").doc();
+
+    const unixTimestamp = Date.now(); // ✅ Universal Unix timestamp in ms (UTC)
+
+    const questionData = {
+      userId,
+      userName,
+      userRole,
+      phone,
+      profileImgUrl: profileImgUrl || null,
+      content,
+      timestamp: unixTimestamp, // ✅ stored as Unix timestamp
+      answer: null,
+      selected_service,
+    };
+
+    await newQuestionRef.set(questionData);
+
+    res.status(201).json({ id: newQuestionRef.id, ...questionData });
+  } catch (error) {
+    console.error("Error creating question:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 // GET: Fetch all questions with pagination
 const getQuestions = async (req, res) => {
   try {
@@ -229,6 +270,7 @@ const searchQuestions = async (req, res) => {
 
 module.exports = {
   createQuestion,
+  createQuestionV2,
   getQuestions,
   getUserQuestions,
   addAnswer,
