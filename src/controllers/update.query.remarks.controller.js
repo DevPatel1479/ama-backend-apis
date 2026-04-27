@@ -74,60 +74,60 @@ exports.updateQueryRemarks = async (req, res) => {
     batch.update(userQueryRef, updatePayload);
 
     await batch.commit();
-    const previewRemarks =
-      cleanRemarks.length > 40
-        ? cleanRemarks.substring(0, 40) + "..."
-        : cleanRemarks;
-    const loginUsersRef = db.collection("login_users").doc(parentDocId);
-    const loginUserSnap = await loginUsersRef.get();
-    if (loginUserSnap.exists) {
-      const userData = loginUserSnap.data();
-      const fcmToken = userData.fcm_token;
+    // const previewRemarks =
+    //   cleanRemarks.length > 40
+    //     ? cleanRemarks.substring(0, 40) + "..."
+    //     : cleanRemarks;
+    // const loginUsersRef = db.collection("login_users").doc(parentDocId);
+    // const loginUserSnap = await loginUsersRef.get();
+    // if (loginUserSnap.exists) {
+    //   const userData = loginUserSnap.data();
+    //   const fcmToken = userData.fcm_token;
 
-      if (fcmToken) {
-        const msg = {
-          token: fcmToken,
+    //   if (fcmToken) {
+    //     const msg = {
+    //       token: fcmToken,
 
-          notification: {
-            title: "Query Remarks Updated",
-            body: `Remarks: ${previewRemarks}`,
-          },
+    //       notification: {
+    //         title: "Query Remarks Updated",
+    //         body: `Remarks: ${previewRemarks}`,
+    //       },
 
-          android: {
-            priority: "high",
-            notification: {
-              channel_id: "high_importance_channel",
-            },
-          },
+    //       android: {
+    //         priority: "high",
+    //         notification: {
+    //           channel_id: "high_importance_channel",
+    //         },
+    //       },
 
-          apns: {
-            payload: {
-              aps: {
-                sound: "default",
-                alert: {
-                  title: "Query Remarks Updated",
-                  body: `Remarks: ${previewRemarks}`,
-                },
-              },
-            },
-          },
+    //       apns: {
+    //         payload: {
+    //           aps: {
+    //             sound: "default",
+    //             alert: {
+    //               title: "Query Remarks Updated",
+    //               body: `Remarks: ${previewRemarks}`,
+    //             },
+    //           },
+    //         },
+    //       },
 
-          data: {
-            type: "QUERY_REMARKS_UPDATED",
-            queryId: queryId,
-          },
-        };
+    //       data: {
+    //         type: "QUERY_REMARKS_UPDATED",
+    //         queryId: queryId,
+    //       },
+    //     };
 
-        try {
-          await admin.messaging().send(msg);
-          console.log("📩 Remarks update FCM sent");
-        } catch (fcmErr) {
-          console.error("FCM sending error:", fcmErr);
-        }
-      } else {
-        console.log("⚠ No FCM token found for user:", parentDocId);
-      }
-    }
+    //     try {
+    //       await admin.messaging().send(msg);
+    //       console.log("📩 Remarks update FCM sent");
+    //     } catch (fcmErr) {
+    //       console.error("FCM sending error:", fcmErr);
+    //     }
+    //   } else {
+    //     console.log("⚠ No FCM token found for user:", parentDocId);
+    //   }
+    // }
 
     return res.status(200).json({
       success: true,
