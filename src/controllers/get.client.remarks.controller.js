@@ -1,7 +1,7 @@
 // controllers/getClientRemarksController.js
 
 const { crmDb } = require("../config/crmFirebase");
-
+const { db } = require("../config/firebase");
 exports.getClientRemarks = async (req, res) => {
   try {
     const { phone } = req.query;
@@ -15,12 +15,39 @@ exports.getClientRemarks = async (req, res) => {
       });
     }
 
-    // 📌 Query Firestore: clients collection
-    const snapshot = await crmDb
-      .collection("clients")
+    const loginSnapshot = await db
+      .collection("login_users")
       .where("phone", "==", phone)
+      .limit(1)
       .get();
 
+    if (loginSnapshot.empty) {
+      return res.status(200).json({
+        success: true,
+        message: "No records found for this phone number.",
+        data: [],
+      });
+    }
+
+    const loginUser = loginSnapshot.docs[0].data();
+    const serviceType = loginUser.service_type || "";
+
+    let snapshot;
+
+    // 📌 Query Firestore: clients collection
+    if (serviceType === "loan settlement") {
+      snapshot = await crmDb
+        .collection("clients")
+        .where("phone", "==", phone)
+        .limit(1)
+        .get();
+    } else {
+      snapshot = await db
+        .collection("login_users")
+        .where("phone", "==", phone)
+        .limit(1)
+        .get();
+    }
     // 🔴 No match
     if (snapshot.empty) {
       return res.status(200).json({
